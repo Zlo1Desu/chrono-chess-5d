@@ -1,15 +1,16 @@
 class_name ChessAI
 extends RefCounted
-## Улучшенный тактический ИИ для 5D-шахмат:
-## - Корректный расчёт угроз королю и подстав фигур через смену хода (pass_clone)
-## - Обнаружение мата в 1 ход, шахов, связок и темпоральных прыжков
-## - Позиционные таблицы (централизация, развитие фигур, безопасность короля, проходные пешки)
-## - Лучевой поиск (Beam Search) комбинаций ходов на нескольких досках + 2-ply просчёт на Сложном уровне
-## - Система тактических подсказок (get_hint) для игрока
+## Высокопроизводительный тактический ИИ для 5D-шахмат:
+## - Быстрая оценка без лишнего клонирования (in-place проверка шахов и угроз)
+## - Двухступенчатая фильтрация кандидатов (_evaluate_fast -> _evaluate)
+## - Жёсткий контроль времени поиска (Time budget), исключающий фризы даже при 10+ таймлайнах
+## - Лучевой поиск (Beam Search) + 2-ply просчёт на Сложном уровне + система подсказок (get_hint)
 
 const EASY := 0
 const NORMAL := 1
 const HARD := 2
+
+const MAX_SEARCH_MS := 75
 
 var level: int = NORMAL
 var rng := RandomNumberGenerator.new()
@@ -22,12 +23,12 @@ func _init(lvl: int = NORMAL) -> void:
 
 ## Возвращает массив ходов (Dictionary) для текущего игрока в `state`.
 func choose_turn(state: GameState) -> Array:
+	var start_ms: int = Time.get_ticks_msec()
 	var me: int = state.turn
-	var opp: int = 1 - me
 
 	# 1. Лучевой поиск лучших комбинаций ходов по обязательным доскам
-	var beam_width: int = 3 if level == EASY else (6 if level == NORMAL else 10)
-	var candidates: Array = _beam_search_turns(state, me, beam_width)
+	var beam_width: int = 2 if level == EASY else (4 if level == NORMAL else 6)
+	var candidates: Array = _beam_search_turns(state, me, beam_width, start_ms)
 
 	var legal_turns: Array = []
 	for cand in candidates:
@@ -35,30 +36,38 @@ func choose_turn(state: GameState) -> Array:
 		if g_cand.submit_error() == "":
 			legal_turns.append(cand)
 
-	# 2. Если все жадные комбинации оставляют короля под шахом (например, нужен ход на необязательной доске),
-	#    пробуем добавить защитный ход на любой доступной доске или собираем несколько легальных ходов и выбираем лучший.
+	# 2. Если жадные комбинации оставляют короля под шахом — ищем легальные ходы с контролем времени
 	if legal_turns.is_empty():
-		legal_turns = _find_scored_legal_turns(state, me, 8 if level == HARD else 4)
+		var fb_start: int = Time.get_ticks_msec()
+		legal_turns = _find_scored_legal_turns(state, me, 4 if level == HARD else 2, fb_start)
 
 	if legal_turns.is_empty():
-		var fallback: Variant = state.find_legal_turn(8000)
-		if fallback is Array:
-			return fallback
 		return []
 
-	# 3. На уровне HARD проверяем на мат в 1 ход и делаем 2-ply просчёт ответа соперника для топ-кандидатов
-	if level == HARD and legal_turns.size() > 1:
+	# 3. Уточняем тактическую оценку (проверка подстав фигур) только для топ-кандидатов
+	var top_eval_cnt: int = mini(legal_turns.size(), 4 if level == HARD else 3)
+	for i in range(top_eval_cnt):
+		if Time.get_ticks_msec() - start_ms > MAX_SEARCH_MS:
+			break
+		var item: Dictionary = legal_turns[i]
+		item["score"] = _evaluate(item["state"], me) + _noise()
+	legal_turns.sort_custom(func(a, b): return float(a["score"]) > float(b["score"]))
+
+	# 4. На уровне HARD проверяем на мат в 1 ход и делаем быстрый 2-ply просчёт ответа соперника
+	if level == HARD and legal_turns.size() > 1 and (Time.get_ticks_msec() - start_ms) < MAX_SEARCH_MS:
 		var best_turn: Array = legal_turns[0]["moves"]
 		var best_val: float = -INF
-		var top_k: int = mini(legal_turns.size(), 5)
+		var top_k: int = mini(legal_turns.size(), 3)
 		for i in range(top_k):
+			if Time.get_ticks_msec() - start_ms > MAX_SEARCH_MS:
+				break
 			var item: Dictionary = legal_turns[i]
 			var g_after: GameState = item["state"].pass_clone()
 			var val: float = float(item["score"])
 			# Проверяем, не поставили ли мы мат!
-			if g_after.in_check() and g_after.find_legal_turn(500) == null:
+			if g_after.in_check() and g_after.find_legal_turn(180) == null:
 				return item["moves"]
-			# Оцениваем лучший ответ соперника на обязательных досках
+			# Оцениваем лучший ответ соперника на первой обязательной доске
 			var opp_mand: Array = g_after.mandatory_timelines()
 			if not opp_mand.is_empty():
 				var opp_moves: Array = g_after.board_moves(opp_mand[0])
@@ -66,11 +75,11 @@ func choose_turn(state: GameState) -> Array:
 				var checked_replies: int = 0
 				opp_moves.sort_custom(func(a, b): return _quick_move_priority(g_after, a) > _quick_move_priority(g_after, b))
 				for om in opp_moves:
-					if checked_replies >= 8:
+					if checked_replies >= 5 or (Time.get_ticks_msec() - start_ms) > MAX_SEARCH_MS:
 						break
 					g_after.apply_move(om)
-					if not g_after.pass_clone().is_king_capturable(me):
-						var reply_eval: float = _evaluate(g_after, me)
+					if not g_after.in_check():
+						var reply_eval: float = _evaluate_fast(g_after, me)
 						if reply_eval < worst_reply:
 							worst_reply = reply_eval
 						checked_replies += 1
@@ -107,28 +116,36 @@ static func get_hint(state: GameState) -> Dictionary:
 	if all_moves.is_empty():
 		return {}
 
+	all_moves.sort_custom(func(a, b): return ai._quick_move_priority(g, a) > ai._quick_move_priority(g, b))
+	var max_candidates: int = mini(all_moves.size(), 24)
+
 	var best_m: Dictionary = {}
 	var best_score: float = -INF
 	var best_reason: String = "Развитие и укрепление позиции"
+	var start_ms: int = Time.get_ticks_msec()
 
-	for m in all_moves:
+	for idx in range(max_candidates):
+		if idx > 4 and Time.get_ticks_msec() - start_ms > 65:
+			break
+		var m: Dictionary = all_moves[idx]
 		g.apply_move(m)
-		var after_opp: GameState = g.pass_clone()
-		var king_exposed: bool = after_opp.is_king_capturable(opp)
-		var s: float = ai._evaluate(g, me)
+		var king_exposed: bool = g.in_check()
+		var s: float = ai._evaluate_fast(g, me)
 		var reason: String = "Активный позиционный манёвр"
 
 		if king_exposed:
 			s -= 25000.0
 			reason = "Защита короля"
 		else:
-			var gives_check: bool = after_opp.in_check()
-			if gives_check and after_opp.find_legal_turn(450) == null:
-				s += 100000.0
-				reason = "⚡ Шах и мат в 1 ход!"
-			elif gives_check:
-				s += 4.5
-				reason = "⚔️ Объявление шаха королю соперника"
+			var gives_check: bool = g.is_king_capturable(me)
+			if gives_check:
+				var after_opp: GameState = g.pass_clone()
+				if after_opp.find_legal_turn(180) == null:
+					s += 100000.0
+					reason = "⚡ Шах и мат в 1 ход!"
+				else:
+					s += 4.5
+					reason = "⚔️ Объявление шаха королю соперника"
 
 		var f: Vector4i = m["f"]
 		var t: Vector4i = m["t"]
@@ -156,13 +173,17 @@ static func get_hint(state: GameState) -> Dictionary:
 	return {"move": best_m, "reason": best_reason}
 
 
-func _beam_search_turns(state: GameState, me: int, beam_width: int) -> Array:
+func _beam_search_turns(state: GameState, me: int, beam_width: int, start_ms: int) -> Array:
 	var initial := state.clone()
 	initial.turn_moves = []
-	var beam: Array = [{"state": initial, "moves": [], "score": _evaluate(initial, me)}]
+	var max_allowed_tl: int = state.timelines.size() + 1
+	var beam: Array = [{"state": initial, "moves": [], "score": _evaluate_fast(initial, me)}]
 
 	var step: int = 0
-	while step < 12:
+	var max_steps: int = maxi(2, state.mandatory_timelines().size() + 1)
+	while step < max_steps:
+		if Time.get_ticks_msec() - start_ms > MAX_SEARCH_MS:
+			break
 		step += 1
 		var next_beam: Array = []
 		var expanded_any: bool = false
@@ -184,20 +205,24 @@ func _beam_search_turns(state: GameState, me: int, beam_width: int) -> Array:
 				next_beam.append(node)
 				continue
 
-			# Сортируем ходы по тактическому приоритету и берём топ-14 для глубокой оценки
 			moves.sort_custom(func(a, b): return _quick_move_priority(g, a) > _quick_move_priority(g, b))
-			var limit: int = mini(moves.size(), 10 if level == EASY else (16 if level == NORMAL else 24))
+			var limit: int = mini(moves.size(), 6 if level == EASY else (10 if level == NORMAL else 14))
 
 			for i in range(limit):
 				var m: Dictionary = moves[i]
+				# Не позволяем в один ход создавать цепочку из 2+ новых таймлайнов в прошлом
+				var f: Vector4i = m["f"]
+				var t: Vector4i = m["t"]
+				if (f.w != t.w or f.z != t.z) and g.timelines.size() >= max_allowed_tl:
+					continue
 				var g2: GameState = g.clone()
 				g2.apply_move(m)
-				var s: float = _evaluate(g2, me) + _noise()
+				var s: float = _evaluate_fast(g2, me) + _noise()
 				var m_list: Array = (node["moves"] as Array).duplicate()
 				m_list.append(m)
 				next_beam.append({"state": g2, "moves": m_list, "score": s})
 
-		if not expanded_any:
+		if not expanded_any or next_beam.is_empty():
 			break
 
 		next_beam.sort_custom(func(a, b): return float(a["score"]) > float(b["score"]))
@@ -212,12 +237,12 @@ func _beam_search_turns(state: GameState, me: int, beam_width: int) -> Array:
 		var g: GameState = node["state"]
 		if g.submit_error() == "":
 			final_candidates.append(node)
-		else:
+		elif Time.get_ticks_msec() - start_ms <= MAX_SEARCH_MS:
 			var extra_moves: Array = []
 			for l in g.playable_timelines():
 				extra_moves.append_array(g.board_moves(l))
 			extra_moves.sort_custom(func(a, b): return _quick_move_priority(g, a) > _quick_move_priority(g, b))
-			var limit_extra: int = mini(extra_moves.size(), 16)
+			var limit_extra: int = mini(extra_moves.size(), 10)
 			for i in range(limit_extra):
 				var em: Dictionary = extra_moves[i]
 				var g2: GameState = g.clone()
@@ -225,24 +250,26 @@ func _beam_search_turns(state: GameState, me: int, beam_width: int) -> Array:
 				if g2.submit_error() == "":
 					var m_list: Array = (node["moves"] as Array).duplicate()
 					m_list.append(em)
-					final_candidates.append({"state": g2, "moves": m_list, "score": _evaluate(g2, me) + _noise()})
+					final_candidates.append({"state": g2, "moves": m_list, "score": _evaluate_fast(g2, me) + _noise()})
 
 	final_candidates.sort_custom(func(a, b): return float(a["score"]) > float(b["score"]))
 	return final_candidates
 
 
-func _find_scored_legal_turns(state: GameState, me: int, max_turns: int) -> Array:
+func _find_scored_legal_turns(state: GameState, me: int, max_turns: int, start_ms: int) -> Array:
 	var results: Array = []
 	var g: GameState = state.clone()
 	g.turn_moves = []
-	var budget := [5500]
-	_dfs_collect_legal(g, me, budget, max_turns, results)
+	var budget := [220]
+	var max_moves: int = maxi(2, state.mandatory_timelines().size() + 1)
+	var max_tl: int = state.timelines.size() + 1
+	_dfs_collect_legal(g, me, budget, max_turns, max_moves, max_tl, start_ms, results)
 	results.sort_custom(func(a, b): return float(a["score"]) > float(b["score"]))
 	return results
 
 
-func _dfs_collect_legal(g: GameState, me: int, budget: Array, max_turns: int, results: Array) -> void:
-	if results.size() >= max_turns or int(budget[0]) <= 0:
+func _dfs_collect_legal(g: GameState, me: int, budget: Array, max_turns: int, max_moves: int, max_tl: int, start_ms: int, results: Array) -> void:
+	if results.size() >= max_turns or int(budget[0]) <= 0 or (Time.get_ticks_msec() - start_ms) > MAX_SEARCH_MS:
 		return
 	budget[0] = int(budget[0]) - 1
 
@@ -250,11 +277,11 @@ func _dfs_collect_legal(g: GameState, me: int, budget: Array, max_turns: int, re
 		results.append({
 			"state": g.clone(),
 			"moves": g.turn_moves.duplicate(),
-			"score": _evaluate(g, me) + _noise()
+			"score": _evaluate_fast(g, me) + _noise()
 		})
 		return
 
-	if g.turn_moves.size() >= g.timelines.size() + 2:
+	if g.turn_moves.size() >= max_moves or g.timelines.size() > max_tl:
 		return
 
 	var mand: Array = g.mandatory_timelines()
@@ -264,9 +291,9 @@ func _dfs_collect_legal(g: GameState, me: int, budget: Array, max_turns: int, re
 		moves.sort_custom(func(a, b): return _quick_move_priority(g, a) > _quick_move_priority(g, b))
 		for m in moves:
 			g.apply_move(m)
-			_dfs_collect_legal(g, me, budget, max_turns, results)
+			_dfs_collect_legal(g, me, budget, max_turns, max_moves, max_tl, start_ms, results)
 			g.undo_move()
-			if results.size() >= max_turns or int(budget[0]) <= 0:
+			if results.size() >= max_turns or int(budget[0]) <= 0 or (Time.get_ticks_msec() - start_ms) > MAX_SEARCH_MS:
 				return
 
 
@@ -288,7 +315,8 @@ func _quick_move_priority(g: GameState, m: Dictionary) -> float:
 	if int(m.get("promo", 0)) != 0:
 		prio += 80.0
 	if f.w != t.w or f.z != t.z:
-		prio += 4.0
+		# Прыжок со взятием полезен, а пустой прыжок в прошлое менее приоритетен, чем развитие на доске
+		prio += 2.5 if victim != GameState.EMPTY else -1.5
 	# Централизация
 	var cx: float = absf(t.x - (g.w - 1) / 2.0)
 	var cy: float = absf(t.y - (g.h - 1) / 2.0)
@@ -306,8 +334,8 @@ func _noise() -> float:
 			return rng.randf_range(0.0, 0.04)
 
 
-func _evaluate(g: GameState, me: int) -> float:
-	var opp: int = 1 - me
+## Сверхбыстрая оценка позиции без клонирования GameState и без полного 4D-трассирования всех фигур.
+func _evaluate_fast(g: GameState, me: int) -> float:
 	var score: float = 0.0
 
 	for l in g.timelines:
@@ -328,18 +356,15 @@ func _evaluate(g: GameState, me: int) -> float:
 				var adv: int = y if col == GameState.WHITE else (g.h - 1 - y)
 				v += 0.08 * adv
 				if adv >= g.h - 2:
-					v += 0.65 # Предпревращённая пешка
+					v += 0.65
 				elif adv >= g.h - 3:
 					v += 0.25
-				# Центральные пешки ценнее на ранней стадии
 				if x >= 2 and x <= g.w - 3:
 					v += 0.06
 			elif t == GameState.KING:
-				# Безопасность короля: не выходить в центр под перекрёстный огонь
 				var back_rank: int = 0 if col == GameState.WHITE else (g.h - 1)
 				var dist_back: int = absi(y - back_rank)
 				v -= float(dist_back) * 0.12
-				# Бонус за пешечное прикрытие перед королём
 				var shield_dir: int = 1 if col == GameState.WHITE else -1
 				var sy: int = y + shield_dir
 				if sy >= 0 and sy < g.h:
@@ -348,11 +373,9 @@ func _evaluate(g: GameState, me: int) -> float:
 						if sp != GameState.EMPTY and GameState.piece_color(sp) == col and (sp & GameState.TYPE_MASK) == GameState.PAWN:
 							v += 0.12
 			else:
-				# Централизация и развитие фигур
 				var cx: float = absf(x - (g.w - 1) / 2.0)
 				var cy: float = absf(y - (g.h - 1) / 2.0)
 				v += 0.08 * (3.2 - minf(3.2, (cx + cy) / 2.0))
-				# Небольшой штраф за неразвитые лёгкие фигуры на первой горизонтали
 				var home_y: int = 0 if col == GameState.WHITE else (g.h - 1)
 				if y == home_y and (t == GameState.KNIGHT or t == GameState.BISHOP or t == GameState.UNICORN or t == GameState.PRINCESS):
 					v -= 0.14
@@ -362,30 +385,13 @@ func _evaluate(g: GameState, me: int) -> float:
 			else:
 				score -= v * weight
 
-	# Критично: проверяем позицию с точки зрения следующего хода соперника через pass_clone()!
-	var after_opp: GameState = g.pass_clone()
-	if after_opp.is_king_capturable(opp):
+	# Быстрая проверка подставы собственного короля (in-place без клонирования)
+	if g.in_check():
 		return score - 20000.0
 
 	# Проверяем, поставили ли мы шах сопернику
-	var after_me: GameState = g.clone()
-	after_me.turn = me
-	var gave_check: bool = after_me.is_king_capturable(me)
-	if gave_check:
-		if level == HARD and after_opp.find_legal_turn(350) == null:
-			return score + 50000.0 # Форсированный мат!
+	if g.is_king_capturable(me):
 		score += 0.85 if level >= NORMAL else 0.35
-
-	match level:
-		EASY:
-			# Даже лёгкий бот старается не отдавать ферзя совсем просто так в 50% случаев
-			score -= minf(after_opp.best_capture_value(opp), 9.0) * 0.25
-		NORMAL:
-			score -= minf(after_opp.best_capture_value(opp), 10.0) * 0.72
-			score += minf(after_me.best_capture_value(me), 10.0) * 0.15
-		HARD:
-			score -= minf(after_opp.best_capture_value(opp), 10.0) * 0.92
-			score += minf(after_me.best_capture_value(me), 10.0) * 0.22
 
 	# Умный контроль мультивселенной: не плодить неактивные линии в пользу соперника
 	var my_lines: int = g.max_l if me == GameState.WHITE else -g.min_l
@@ -394,5 +400,33 @@ func _evaluate(g: GameState, me: int) -> float:
 		score -= float(my_lines - opp_lines - 1) * 0.45
 	else:
 		score -= float(my_lines) * 0.10
+
+	return score
+
+
+## Полная тактическая оценка для финалистов лучевого поиска (учитывает подставы фигур).
+func _evaluate(g: GameState, me: int) -> float:
+	var opp: int = 1 - me
+	var score: float = _evaluate_fast(g, me)
+	if score < -10000.0:
+		return score
+
+	# Временно прокидываем обязательные доски вперёд (in-place), чтобы оценить лучший ответ соперника
+	var mand: Array = g.mandatory_timelines()
+	for l in mand:
+		g._append(l, g.end_board(l))
+	var opp_best_cap: float = g.best_capture_value(opp)
+	for l in mand:
+		var bs: Array = g.timelines[l]["b"]
+		bs.pop_back()
+
+	match level:
+		EASY:
+			score -= minf(opp_best_cap, 9.0) * 0.25
+		NORMAL:
+			score -= minf(opp_best_cap, 10.0) * 0.72
+		HARD:
+			score -= minf(opp_best_cap, 10.0) * 0.92
+			score += minf(g.best_capture_value(me), 10.0) * 0.18
 
 	return score

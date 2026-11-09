@@ -266,13 +266,13 @@ func moves_from(v: Vector4i) -> Array:
 
 
 func board_moves(l: int) -> Array:
-	var res: Array = []
 	var t: int = end_t(l)
 	if posmod(t, 2) != turn:
-		return res
+		return []
 	var b: PackedByteArray = get_board(l, t)
-	var high_priority: Array = []
-	var normal: Array = []
+	var planar_high: Array = []
+	var planar_normal: Array = []
+	var temporal_moves: Array = []
 	for i in b.size():
 		var p: int = b[i]
 		if p != EMPTY and piece_color(p) == turn:
@@ -280,12 +280,16 @@ func board_moves(l: int) -> Array:
 			var is_king: bool = (piece_type(p) == KING)
 			for q in _gen(from, false, false):
 				var m := {"f": from, "t": q}
-				if is_king or _sq(q) != EMPTY:
-					high_priority.append(m)
+				if q.w == l and q.z == t:
+					if is_king or b[q.y * w + q.x] != EMPTY:
+						planar_high.append(m)
+					else:
+						planar_normal.append(m)
 				else:
-					normal.append(m)
-	high_priority.append_array(normal)
-	return high_priority
+					temporal_moves.append(m)
+	planar_high.append_array(planar_normal)
+	planar_high.append_array(temporal_moves)
+	return planar_high
 
 
 func _sq(v: Vector4i) -> int:
@@ -310,53 +314,85 @@ static func _offset(pos: Vector4i, d: Vector4i, k: int) -> Vector4i:
 	return Vector4i(pos.x + d.x * k, pos.y + d.y * k, pos.z + d.z * 2 * k, pos.w + d.w * k)
 
 
-## attack = только взятия (без рокировки и тихих ходов пешки);
+## attack = только взятия (без рокировки и тихих ходов);
 ## planar = только в пределах одной доски.
 func _gen(pos: Vector4i, attack: bool, planar: bool) -> Array:
 	var out: Array = []
-	var p: int = _sq(pos)
+	if not timelines.has(pos.w) or not is_active(pos.w):
+		return out
+	var tl: Dictionary = timelines[pos.w]
+	var bs: Array = tl["b"]
+	var bi: int = pos.z - int(tl["s"])
+	if bi < 0 or bi >= bs.size():
+		return out
+	var cur_b: PackedByteArray = bs[bi]
+	var p: int = cur_b[pos.y * w + pos.x]
 	if p <= 0:
 		return out
 	var c: int = piece_color(p)
 	match p & TYPE_MASK:
 		PAWN:
-			_gen_pawn(pos, p, c, attack, planar, out)
+			_gen_pawn(pos, p, c, attack, planar, cur_b, out)
 		KNIGHT:
-			_leap(pos, KNIGHT_DIRS, c, planar, out)
+			_leap(pos, KNIGHT_DIRS, c, attack, planar, cur_b, out)
 		BISHOP:
-			_slide(pos, DIRS[2], c, planar, out)
+			_slide(pos, DIRS[2], c, attack, planar, cur_b, out)
 		ROOK:
-			_slide(pos, DIRS[1], c, planar, out)
+			_slide(pos, DIRS[1], c, attack, planar, cur_b, out)
 		QUEEN:
-			_slide(pos, DIRS[1], c, planar, out)
-			_slide(pos, DIRS[2], c, planar, out)
+			_slide(pos, DIRS[1], c, attack, planar, cur_b, out)
+			_slide(pos, DIRS[2], c, attack, planar, cur_b, out)
 		KING:
-			_leap(pos, DIRS[1], c, planar, out)
-			_leap(pos, DIRS[2], c, planar, out)
+			_leap(pos, DIRS[1], c, attack, planar, cur_b, out)
+			_leap(pos, DIRS[2], c, attack, planar, cur_b, out)
 			if not attack:
 				_gen_castle(pos, p, c, out)
 		UNICORN:
-			_slide(pos, DIRS[3], c, planar, out)
+			_slide(pos, DIRS[3], c, attack, planar, cur_b, out)
 		DRAGON:
-			_slide(pos, DIRS[4], c, planar, out)
+			_slide(pos, DIRS[4], c, attack, planar, cur_b, out)
 		PRINCESS:
-			_slide(pos, DIRS[1], c, planar, out)
-			_slide(pos, DIRS[2], c, planar, out)
+			_slide(pos, DIRS[1], c, attack, planar, cur_b, out)
+			_slide(pos, DIRS[2], c, attack, planar, cur_b, out)
 	return out
 
 
-func _slide(pos: Vector4i, dirs: Array, c: int, planar: bool, out: Array) -> void:
+func _slide(pos: Vector4i, dirs: Array, c: int, attack: bool, planar: bool, cur_b: PackedByteArray, out: Array) -> void:
 	for d in dirs:
-		if planar and (d.z != 0 or d.w != 0):
+		var dz: int = d.z
+		var dw: int = d.w
+		if dz == 0 and dw == 0:
+			var dx: int = d.x
+			var dy: int = d.y
+			var qx: int = pos.x + dx
+			var qy: int = pos.y + dy
+			while qx >= 0 and qy >= 0 and qx < w and qy < h:
+				var s: int = cur_b[qy * w + qx]
+				if s == EMPTY:
+					if not attack:
+						out.append(Vector4i(qx, qy, pos.z, pos.w))
+				else:
+					if piece_color(s) != c:
+						out.append(Vector4i(qx, qy, pos.z, pos.w))
+					break
+				qx += dx
+				qy += dy
+			continue
+		if planar:
+			continue
+		if pos.w + dw < min_l or pos.w + dw > max_l:
+			continue
+		if dw == 0 and dz > 0:
 			continue
 		var k: int = 1
 		while true:
-			var q: Vector4i = _offset(pos, d, k)
+			var q := Vector4i(pos.x + d.x * k, pos.y + d.y * k, pos.z + dz * 2 * k, pos.w + dw * k)
 			var s: int = _sq(q)
 			if s < 0:
 				break
 			if s == EMPTY:
-				out.append(q)
+				if not attack:
+					out.append(q)
 			else:
 				if piece_color(s) != c:
 					out.append(q)
@@ -364,44 +400,65 @@ func _slide(pos: Vector4i, dirs: Array, c: int, planar: bool, out: Array) -> voi
 			k += 1
 
 
-func _leap(pos: Vector4i, dirs: Array, c: int, planar: bool, out: Array) -> void:
+func _leap(pos: Vector4i, dirs: Array, c: int, attack: bool, planar: bool, cur_b: PackedByteArray, out: Array) -> void:
 	for d in dirs:
-		if planar and (d.z != 0 or d.w != 0):
+		var dz: int = d.z
+		var dw: int = d.w
+		if dz == 0 and dw == 0:
+			var qx: int = pos.x + d.x
+			var qy: int = pos.y + d.y
+			if qx >= 0 and qy >= 0 and qx < w and qy < h:
+				var s: int = cur_b[qy * w + qx]
+				if s == EMPTY:
+					if not attack:
+						out.append(Vector4i(qx, qy, pos.z, pos.w))
+				elif piece_color(s) != c:
+					out.append(Vector4i(qx, qy, pos.z, pos.w))
 			continue
-		var q: Vector4i = _offset(pos, d, 1)
+		if planar:
+			continue
+		if pos.w + dw < min_l or pos.w + dw > max_l:
+			continue
+		if dw == 0 and dz > 0:
+			continue
+		var q := Vector4i(pos.x + d.x, pos.y + d.y, pos.z + dz * 2, pos.w + dw)
 		var s: int = _sq(q)
-		if s == EMPTY or (s > 0 and piece_color(s) != c):
+		if s == EMPTY:
+			if not attack:
+				out.append(q)
+		elif s > 0 and piece_color(s) != c:
 			out.append(q)
 
 
-func _gen_pawn(pos: Vector4i, p: int, c: int, attack: bool, planar: bool, out: Array) -> void:
+func _gen_pawn(pos: Vector4i, p: int, c: int, attack: bool, planar: bool, cur_b: PackedByteArray, out: Array) -> void:
 	var fy: int = 1 if c == WHITE else -1
 	var fl: int = -1 if c == WHITE else 1
+	var ny1: int = pos.y + fy
 	if not attack:
-		var one := Vector4i(pos.x, pos.y + fy, pos.z, pos.w)
-		if _sq(one) == EMPTY:
-			out.append(one)
+		if ny1 >= 0 and ny1 < h and cur_b[ny1 * w + pos.x] == EMPTY:
+			out.append(Vector4i(pos.x, ny1, pos.z, pos.w))
 			if p & UNMOVED:
-				var two := Vector4i(pos.x, pos.y + 2 * fy, pos.z, pos.w)
-				if _sq(two) == EMPTY:
-					out.append(two)
-		if not planar:
+				var ny2: int = pos.y + 2 * fy
+				if ny2 >= 0 and ny2 < h and cur_b[ny2 * w + pos.x] == EMPTY:
+					out.append(Vector4i(pos.x, ny2, pos.z, pos.w))
+		if not planar and pos.w + fl >= min_l and pos.w + fl <= max_l:
 			var lone := Vector4i(pos.x, pos.y, pos.z, pos.w + fl)
 			if _sq(lone) == EMPTY:
 				out.append(lone)
-	for dx in [-1, 1]:
-		var q := Vector4i(pos.x + dx, pos.y + fy, pos.z, pos.w)
+	if ny1 >= 0 and ny1 < h:
+		for dx in [-1, 1]:
+			var nx: int = pos.x + dx
+			if nx >= 0 and nx < w:
+				var s: int = cur_b[ny1 * w + nx]
+				if s > 0 and piece_color(s) != c:
+					out.append(Vector4i(nx, ny1, pos.z, pos.w))
+				elif s == EMPTY and not attack and _en_passant_ok(pos, dx, fy, c):
+					out.append(Vector4i(nx, ny1, pos.z, pos.w))
+	if not planar and pos.w + fl >= min_l and pos.w + fl <= max_l:
+		var q := Vector4i(pos.x, pos.y, pos.z + 2, pos.w + fl)
 		var s: int = _sq(q)
 		if s > 0 and piece_color(s) != c:
 			out.append(q)
-		elif s == EMPTY and not attack and _en_passant_ok(pos, dx, fy, c):
-			out.append(q)
-	if not planar:
-		for dt in [1]:
-			var q := Vector4i(pos.x, pos.y, pos.z + 2 * dt, pos.w + fl)
-			var s: int = _sq(q)
-			if s > 0 and piece_color(s) != c:
-				out.append(q)
 
 
 func _en_passant_ok(pos: Vector4i, dx: int, fy: int, c: int) -> bool:
@@ -441,13 +498,13 @@ func _gen_castle(pos: Vector4i, p: int, c: int, out: Array) -> void:
 
 func _planar_attacked(l: int, t: int, x: int, y: int, by: int) -> bool:
 	var b: PackedByteArray = get_board(l, t)
+	var target := Vector4i(x, y, t, l)
 	for i in b.size():
 		var p: int = b[i]
 		if p == EMPTY or piece_color(p) != by:
 			continue
-		for q in _gen(Vector4i(i % w, i / w, t, l), true, true):
-			if q.x == x and q.y == y:
-				return true
+		if _can_attack(Vector4i(i % w, i / w, t, l), target, p):
+			return true
 	return false
 
 
@@ -575,7 +632,7 @@ func king_attacks(by: int) -> Array:
 ## соперника. first_only — вернуть результат сразу после первой найденной угрозы.
 func _scan_king_attacks(by: int, first_only: bool) -> Array:
 	var res: Array = []
-	var kings: Array = _find_kings(1 - by)
+	var kings: Array = _find_kings(1 - by, by)
 	if kings.is_empty():
 		return res
 	for l in timelines:
@@ -598,9 +655,10 @@ func _scan_king_attacks(by: int, first_only: bool) -> Array:
 	return res
 
 
-func _find_kings(c: int) -> Array:
+func _find_kings(c: int, req_turn_parity: int = -1) -> Array:
 	var res: Array = []
-	var target_piece: int = KING | (BLACK_BIT if c == BLACK else 0)
+	var k_moved: int = KING | (BLACK_BIT if c == BLACK else 0)
+	var k_unmoved: int = k_moved | UNMOVED
 	for l in timelines:
 		if not is_active(l):
 			continue
@@ -608,10 +666,18 @@ func _find_kings(c: int) -> Array:
 		var bs: Array = tl["b"]
 		var s: int = int(tl["s"])
 		for bi in bs.size():
+			var t_val: int = s + bi
+			if req_turn_parity != -1 and posmod(t_val, 2) != req_turn_parity:
+				continue
 			var b: PackedByteArray = bs[bi]
-			for idx in b.size():
-				if (b[idx] & (TYPE_MASK | BLACK_BIT)) == target_piece:
-					res.append(Vector4i(idx % w, idx / w, s + bi, l))
+			var idx: int = b.find(k_moved)
+			while idx != -1:
+				res.append(Vector4i(idx % w, idx / w, t_val, l))
+				idx = b.find(k_moved, idx + 1)
+			idx = b.find(k_unmoved)
+			while idx != -1:
+				res.append(Vector4i(idx % w, idx / w, t_val, l))
+				idx = b.find(k_unmoved, idx + 1)
 	return res
 
 
@@ -631,15 +697,8 @@ func _can_attack(from: Vector4i, target: Vector4i, piece: int) -> bool:
 	var k: int = maxi(maxi(adx, ady), maxi(adt, adl))
 	if k == 0:
 		return false
-	# axes — число задействованных осей; straight — все ненулевые смещения равны k
-	# (то есть цель лежит на прямом луче, по которому скользят дальнобойные фигуры).
-	var axes: int = 0
-	var straight := true
-	for a in [adx, ady, adt, adl]:
-		if a != 0:
-			axes += 1
-			if a != k:
-				straight = false
+	var axes: int = (1 if adx != 0 else 0) + (1 if ady != 0 else 0) + (1 if adt != 0 else 0) + (1 if adl != 0 else 0)
+	var straight: bool = (adx == 0 or adx == k) and (ady == 0 or ady == k) and (adt == 0 or adt == k) and (adl == 0 or adl == k)
 	var c: int = piece_color(piece)
 
 	match piece & TYPE_MASK:
@@ -731,16 +790,30 @@ func current_threats() -> Array:
 
 
 func in_check() -> bool:
-	return pass_clone().is_king_capturable(1 - turn)
+	var mand: Array = mandatory_timelines()
+	for l in mand:
+		_append(l, end_board(l))
+	var res: bool = is_king_capturable(1 - turn)
+	for l in mand:
+		var bs: Array = timelines[l]["b"]
+		bs.pop_back()
+	return res
 
 
 ## Поиск любого допустимого хода (набора перемещений) для текущего игрока.
 ## Возвращает Array (ход), null (ходов нет) или "unknown" (исчерпан лимит поиска).
-func find_legal_turn(budget: int = 2000) -> Variant:
+func find_legal_turn(budget: int = 350) -> Variant:
 	var g: GameState = clone()
 	g.turn_moves = []
 	g._undo = []
-	var ctx: Dictionary = {"n": 0, "budget": budget, "over": false}
+	var mand_count: int = g.mandatory_timelines().size()
+	var ctx: Dictionary = {
+		"n": 0,
+		"budget": budget,
+		"over": false,
+		"max_tl": g.timelines.size() + 1,
+		"max_moves": maxi(2, mand_count + 1)
+	}
 	var res: Variant = g._dfs(ctx, 0)
 	if res != null:
 		return res
@@ -758,11 +831,13 @@ func _dfs(ctx: Dictionary, extra: int) -> Variant:
 	if posmod(present(), 2) != turn:
 		if not is_king_capturable(1 - turn):
 			return turn_moves.duplicate()
-		if extra >= 1:
+		if extra >= 1 or turn_moves.size() >= int(ctx["max_moves"]):
 			return null
 		ls = playable_timelines()
 		extra += 1
 	else:
+		if turn_moves.size() >= int(ctx["max_moves"]) or timelines.size() > int(ctx["max_tl"]):
+			return null
 		var mand: Array = mandatory_timelines()
 		if mand.is_empty():
 			return null
@@ -780,15 +855,12 @@ func _dfs(ctx: Dictionary, extra: int) -> Variant:
 
 
 ## "ongoing", "checkmate" или "stalemate" для игрока, который сейчас ходит.
-func game_status(budget: int = 1500) -> String:
+func game_status(budget: int = 300) -> String:
 	var r: Variant = find_legal_turn(budget)
 	if r is Array:
 		return "ongoing"
 	if r == null:
 		return "checkmate" if in_check() else "stalemate"
-	# Если бюджет поиска исчерпан (r == "unknown"):
-	# Если игрок под шахом и за весь лимит ни одного разрешённого хода не найдено — объявляем мат,
-	# чтобы игра не зависала в тупике.
 	if in_check():
 		return "checkmate"
 	return "ongoing"

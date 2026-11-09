@@ -168,27 +168,18 @@ static func _score_move(
 				elif sim.is_king_threatened(ally):
 					score -= 12.0
 
-	# 5. На среднем и сложном уровнях проверяем, не подставляется ли походившая фигура под бой вражеских армий
+	# 5. На среднем и сложном уровнях проверяем, не подставляется ли походившая фигура под бой вражеских армий (за O(1) без генерации всех ходов)
 	if level >= NORMAL:
-		var attacked_by_min_val: float = INF
 		var gives_check_bonus: float = 0.0
-		for opp in sim.active_players:
-			if opp == player or sim.are_teammates(player, opp) or sim.eliminated_players.has(opp):
-				continue
-			# На сложном уровне также ценим объявление шаха вражескому королю
-			if level == HARD and sim.is_king_threatened(opp):
-				gives_check_bonus += 5.5
-			var opp_moves := sim.get_legal_moves(opp)
-			for om in opp_moves:
-				if int(om["tx"]) == tx and int(om["ty"]) == ty:
-					var attacker_p := sim.get_cell(int(om["fx"]), int(om["fy"]))
-					var att_type := sim.get_piece_type(attacker_p)
-					var att_val := float(MultiChessState.PIECE_COMBAT_VALUES.get(att_type, 1))
-					if att_val < attacked_by_min_val:
-						attacked_by_min_val = att_val
-
+		if level == HARD:
+			for opp in sim.active_players:
+				if opp == player or sim.are_teammates(player, opp) or sim.eliminated_players.has(opp):
+					continue
+				if sim.is_king_threatened(opp):
+					gives_check_bonus += 5.5
 		score += gives_check_bonus
-		if attacked_by_min_val < INF:
+
+		if sim.is_square_attacked_by_enemies(tx, ty, player):
 			var moved_piece_now := sim.get_cell(tx, ty)
 			var now_type := sim.get_piece_type(moved_piece_now)
 			var now_val := float(MultiChessState.PIECE_COMBAT_VALUES.get(now_type, int(my_val)))

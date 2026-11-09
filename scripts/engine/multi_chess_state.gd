@@ -413,27 +413,80 @@ func count_pieces(player: int) -> int:
 
 
 func find_king(player: int) -> Vector2i:
-	for y in BOARD_SIZE:
-		for x in BOARD_SIZE:
-			if is_valid_cell(x, y):
-				var p := get_cell(x, y)
-				if p != EMPTY and get_piece_player(p) == player and get_piece_type(p) == KING:
-					return Vector2i(x, y)
+	var target_king: int = make_piece(KING, player)
+	var idx: int = grid.find(target_king)
+	if idx != -1:
+		return Vector2i(idx % BOARD_SIZE, idx / BOARD_SIZE)
 	return Vector2i(-1, -1)
+
+
+## Быстрая геометрическая проверка (O(1) без аллокаций массивов ходов):
+## атакует ли хотя бы одна вражеская фигура клетку (x, y).
+func is_square_attacked_by_enemies(x: int, y: int, defender: int) -> bool:
+	# 1. Прыжки коня
+	const KNIGHT_DIRS := [
+		Vector2i(1, 2), Vector2i(2, 1), Vector2i(-1, 2), Vector2i(-2, 1),
+		Vector2i(1, -2), Vector2i(2, -1), Vector2i(-1, -2), Vector2i(-2, -1)
+	]
+	for kd in KNIGHT_DIRS:
+		var nx: int = x + kd.x
+		var ny: int = y + kd.y
+		if is_valid_cell(nx, ny):
+			var p: int = grid[ny * BOARD_SIZE + nx]
+			if p != EMPTY and get_piece_type(p) == KNIGHT:
+				var pl: int = get_piece_player(p)
+				if not are_teammates(defender, pl) and not eliminated_players.has(pl):
+					return true
+
+	# 2. Ортогональные лучи (Ладья, Ферзь и Король на дистанции 1)
+	const ORTHO_DIRS := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	for od in ORTHO_DIRS:
+		var step: int = 1
+		var cx: int = x + od.x
+		var cy: int = y + od.y
+		while is_valid_cell(cx, cy):
+			var p: int = grid[cy * BOARD_SIZE + cx]
+			if p != EMPTY:
+				var pl: int = get_piece_player(p)
+				if not are_teammates(defender, pl) and not eliminated_players.has(pl):
+					var pt: int = get_piece_type(p)
+					if pt == ROOK or pt == QUEEN or (step == 1 and pt == KING):
+						return true
+				break
+			step += 1
+			cx += od.x
+			cy += od.y
+
+	# 3. Диагональные лучи (Слон, Ферзь, а на дистанции 1 — Король и Пешки)
+	const DIAG_DIRS := [Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]
+	for dd in DIAG_DIRS:
+		var step: int = 1
+		var cx: int = x + dd.x
+		var cy: int = y + dd.y
+		while is_valid_cell(cx, cy):
+			var p: int = grid[cy * BOARD_SIZE + cx]
+			if p != EMPTY:
+				var pl: int = get_piece_player(p)
+				if not are_teammates(defender, pl) and not eliminated_players.has(pl):
+					var pt: int = get_piece_type(p)
+					if pt == BISHOP or pt == QUEEN or (step == 1 and pt == KING):
+						return true
+					if step == 1 and pt == PAWN:
+						if (pl == WHITE and dd.y == -1) or (pl == BLACK and dd.y == 1) or (pl == RED and dd.x == -1) or (pl == BLUE and dd.x == 1):
+							return true
+				break
+			step += 1
+			cx += dd.x
+			cy += dd.y
+
+	return false
 
 
 func is_king_threatened(player: int) -> bool:
 	var kp := find_king(player)
 	if kp.x == -1:
 		return false
-	for opp in active_players:
-		if opp == player or are_teammates(opp, player) or eliminated_players.has(opp):
-			continue
-		var moves := get_legal_moves(opp)
-		for m in moves:
-			if m["tx"] == kp.x and m["ty"] == kp.y:
-				return true
-	return false
+	return is_square_attacked_by_enemies(kp.x, kp.y, player)
 
 
 func clone() -> MultiChessState:

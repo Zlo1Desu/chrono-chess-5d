@@ -41,6 +41,7 @@ var _game_over: bool = false
 var _promo_popup: PanelContainer
 var _pending_promo: Dictionary = {}
 var _toast_tween: Tween
+var _ai_thread: Thread
 
 # Элементы переподключения (Reconnection System)
 var _initial_turns: Array = []
@@ -836,7 +837,7 @@ func _on_submit() -> void:
 		_play("error")
 		toast(err)
 		if state.in_check():
-			if state.game_status(2000) == "checkmate":
+			if state.game_status(300) == "checkmate":
 				_finish("checkmate")
 				return
 			_focus_on_threat()
@@ -984,15 +985,18 @@ func _on_turn_passed() -> void:
 	_clear_selection()
 	_busy = true
 	_after_state_change()
-	# Даём интерфейсу отрисоваться перед относительно тяжёлым поиском ходов.
+	# Даём интерфейсу отрисоваться перед поиском ходов.
 	await get_tree().process_frame
 	if not is_inside_tree():
 		return
-	var status: String = state.game_status(1000)
+	var is_ai_next: bool = (mode == MODE_AI and state.turn != human_color)
+	if not is_ai_next:
+		var status: String = state.game_status(280)
+		if status != "ongoing":
+			_busy = false
+			_finish(status)
+			return
 	_busy = false
-	if status != "ongoing":
-		_finish(status)
-		return
 	if state.in_check():
 		_play("check")
 	_after_state_change()
@@ -1129,16 +1133,42 @@ func _maybe_ai_turn() -> void:
 	_busy = true
 	_after_state_change()
 	# Короткая пауза, чтобы пользователь успел увидеть смену хода и статус
-	await get_tree().create_timer(0.08).timeout
+	await get_tree().create_timer(0.06).timeout
 	if not is_inside_tree() or _game_over:
 		_busy = false
 		return
-	var moves: Array = ai.choose_turn(state.clone())
+
+	var state_copy: GameState = state.clone()
+	var moves: Array = []
+	if _ai_thread != null and _ai_thread.is_started():
+		_ai_thread.wait_to_finish()
+	_ai_thread = Thread.new()
+	var err: int = _ai_thread.start(func() -> Array:
+		return ai.choose_turn(state_copy)
+	)
+	if err == OK:
+		while _ai_thread.is_alive():
+			await get_tree().process_frame
+			if not is_inside_tree():
+				_ai_thread.wait_to_finish()
+				return
+		moves = _ai_thread.wait_to_finish()
+	else:
+		moves = ai.choose_turn(state_copy)
+
+	if not is_inside_tree() or _game_over:
+		_busy = false
+		return
 	if moves.is_empty():
 		_busy = false
 		_finish("checkmate" if state.in_check() else "stalemate")
 		return
 	await _play_remote_moves(moves)
+
+
+func _exit_tree() -> void:
+	if _ai_thread != null and _ai_thread.is_started():
+		_ai_thread.wait_to_finish()
 
 
 ## Проигрывает чужой ход (ИИ или соперника по сети) с анимацией и завершает его.
