@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="gold_grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff6bd"/>
+      <stop offset="32%" stop-color="#ffd166"/>
+      <stop offset="68%" stop-color="#f49d1a"/>
+      <stop offset="100%" stop-color="#a85000"/>
+    </linearGradient>
+    <linearGradient id="cyan_grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e2ffff"/>
+      <stop offset="40%" stop-color="#3df5ff"/>
+      <stop offset="100%" stop-color="#0066ff"/>
+    </linearGradient>
+    <linearGradient id="violet_grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f3c4fb"/>
+      <stop offset="45%" stop-color="#b5179e"/>
+      <stop offset="100%" stop-color="#480ca8"/>
+    </linearGradient>
+    <linearGradient id="king_body" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="28%" stop-color="#f0f5ff"/>
+      <stop offset="68%" stop-color="#b8c9e8"/>
+      <stop offset="100%" stop-color="#5670a4"/>
+    </linearGradient>
+    <linearGradient id="king_armor" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2c4373"/>
+      <stop offset="50%" stop-color="#14213d"/>
+      <stop offset="100%" stop-color="#070c18"/>
+    </linearGradient>
+    <linearGradient id="board_base" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3c72"/>
+      <stop offset="100%" stop-color="#091326"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Масштабируем композицию в безопасную зону Android Adaptive Icon (центр 66%) -->
+  <g transform="translate(256, 256) scale(0.72) translate(-256, -252)">
+    <!-- Хроно-астролябия -->
+    <g transform="translate(256, 224)">
+      <circle r="180" fill="none" stroke="#00f0ff" stroke-width="14" opacity="0.14"/>
+      <circle r="170" fill="none" stroke="url(#cyan_grad)" stroke-width="3.5" opacity="0.75" stroke-dasharray="30 10 6 10"/>
+      <circle r="154" fill="none" stroke="url(#gold_grad)" stroke-width="6" opacity="0.95"/>
+      <circle r="140" fill="none" stroke="#ffd166" stroke-width="2" opacity="0.45" stroke-dasharray="8 8"/>
+      <g stroke="url(#gold_grad)" stroke-width="5" stroke-linecap="round">
+        <line x1="0" y1="-154" x2="0" y2="-168"/>
+        <line x1="154" y1="0" x2="168" y2="0"/>
+        <line x1="0" y1="154" x2="0" y2="168"/>
+        <line x1="-154" y1="0" x2="-168" y2="0"/>
+        <line x1="109" y1="-109" x2="120" y2="-120"/>
+        <line x1="-109" y1="-109" x2="-120" y2="-120"/>
+        <line x1="109" y1="109" x2="120" y2="120"/>
+        <line x1="-109" y1="109" x2="-120" y2="120"/>
+      </g>
+      <ellipse rx="164" ry="62" transform="rotate(-26)" fill="none" stroke="url(#cyan_grad)" stroke-width="4" opacity="0.55"/>
+      <ellipse rx="164" ry="62" transform="rotate(26)" fill="none" stroke="url(#violet_grad)" stroke-width="4" opacity="0.55"/>
+    </g>
+
+    <!-- Изометрическая доска -->
+    <g transform="translate(256, 400)">
+      <polygon points="0,-72 184,0 0,72 -184,0" fill="#00f0ff" opacity="0.22"/>
+      <polygon points="0,-62 164,6 0,74 -164,6" fill="#050914" opacity="0.9"/>
+      <polygon points="-164,0 0,66 164,0 164,18 0,84 -164,18" fill="url(#king_armor)" stroke="url(#gold_grad)" stroke-width="3.5"/>
+      <polygon points="0,-66 164,0 0,66 -164,0" fill="url(#board_base)" stroke="url(#cyan_grad)" stroke-width="4"/>
+      <polygon points="0,-33 82,0 0,33 -82,0" fill="#3df5ff" opacity="0.24"/>
+      <polygon points="0,0 41,16.5 0,33 -41,16.5" fill="#ffd166" opacity="0.52"/>
+      <polygon points="0,-33 41,-16.5 0,0 -41,-16.5" fill="#3df5ff" opacity="0.50"/>
+      <polygon points="-82,0 -41,-16.5 0,0 -41,16.5" fill="#0e2042" opacity="0.92"/>
+      <polygon points="82,0 41,-16.5 0,0 41,16.5" fill="#0e2042" opacity="0.92"/>
+      <polygon points="-123,0 -82,-16.5 -41,0 -82,16.5" fill="#3df5ff" opacity="0.36"/>
+      <polygon points="123,0 82,-16.5 41,0 82,16.5" fill="#3df5ff" opacity="0.36"/>
+    </g>
+
+    <!-- Боковые фигуры (Конь и Ферзь) -->
+    <g transform="translate(154, 286) scale(0.76)" opacity="0.9">
+      <path d="M-52,110 L52,110 L42,88 L-42,88 Z" fill="url(#king_armor)" stroke="url(#cyan_grad)" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M-34,88 C-34,36 -28,-6 -12,-38 L-28,-32 L-46,-46 L-38,-62 L-14,-78 L-10,-98 L10,-82 C34,-68 44,-32 32,12 C26,38 34,66 36,88 Z"
+            fill="url(#king_armor)" stroke="url(#cyan_grad)" stroke-width="4.5" stroke-linejoin="round"/>
+      <path d="M4,-76 C22,-62 30,-32 20,8 C15,30 22,58 24,82" fill="none" stroke="#3df5ff" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+      <circle cx="-18" cy="-58" r="5" fill="#3df5ff"/>
+    </g>
+
+    <g transform="translate(358, 286) scale(0.76)" opacity="0.9">
+      <path d="M-52,110 L52,110 L42,88 L-42,88 Z" fill="url(#king_armor)" stroke="url(#violet_grad)" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M-34,88 C-30,42 -20,0 -24,-32 L24,-32 C20,0 30,42 34,88 Z" fill="url(#king_armor)" stroke="url(#violet_grad)" stroke-width="4.5" stroke-linejoin="round"/>
+      <path d="M-28,-32 L-42,-78 L-14,-52 L0,-86 L14,-52 L42,-78 L28,-32 Z" fill="url(#violet_grad)" stroke="url(#gold_grad)" stroke-width="4" stroke-linejoin="round"/>
+      <circle cx="-42" cy="-84" r="5.5" fill="#ffd166"/>
+      <circle cx="0" cy="-92" r="6" fill="#ffd166"/>
+      <circle cx="42" cy="-84" r="5.5" fill="#ffd166"/>
+    </g>
+
+    <!-- Центральный Имперский Хроно-Король -->
+    <g transform="translate(256, 232)">
+      <ellipse cx="0" cy="34" rx="78" ry="128" fill="#00f0ff" opacity="0.18"/>
+      <path d="M-76,150 C-76,168 76,168 76,150 L68,128 C68,142 -68,142 -68,128 Z" fill="url(#gold_grad)" stroke="#091124" stroke-width="4.5" stroke-linejoin="round"/>
+      <path d="M-66,130 C-66,144 66,144 66,130 L52,104 L-52,104 Z" fill="url(#king_armor)" stroke="url(#gold_grad)" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="-54" y="95" width="108" height="13" rx="6.5" fill="url(#gold_grad)" stroke="#091124" stroke-width="3.5"/>
+      <path d="M-45,95 C-40,38 -26,-6 -31,-44 L31,-44 C26,-6 40,38 45,95 Z" fill="url(#king_body)" stroke="#091124" stroke-width="5.5" stroke-linejoin="round"/>
+      <path d="M-42,93 C-37,40 -25,-4 -29,-42 L-14,-42 C-12,-4 -19,40 -21,93 Z" fill="#1d3566" opacity="0.55"/>
+      <path d="M42,93 C37,40 25,-4 29,-42 L14,-42 C12,-4 19,40 21,93 Z" fill="#0d1b3a" opacity="0.65"/>
+      <polygon points="-22,-12 22,-12 6,22 22,56 -22,56 -6,22" fill="#071126" stroke="url(#gold_grad)" stroke-width="3.5" stroke-linejoin="round"/>
+      <polygon points="-14,-6 14,-6 2,18 -2,18" fill="url(#cyan_grad)"/>
+      <polygon points="-2,26 2,26 14,50 -14,50" fill="url(#cyan_grad)"/>
+      <circle cx="0" cy="22" r="5" fill="#ffffff"/>
+      <rect x="-40" y="-55" width="80" height="14" rx="7" fill="url(#gold_grad)" stroke="#091124" stroke-width="3.5"/>
+      <path d="M-38,-55 L-52,-104 L-22,-78 L0,-112 L22,-78 L52,-104 L38,-55 Z" fill="url(#gold_grad)" stroke="#091124" stroke-width="4.5" stroke-linejoin="round"/>
+      <path d="M-32,-57 L-40,-89 L-18,-70 L0,-97 L18,-70 L40,-89 L32,-57 Z" fill="url(#king_armor)" opacity="0.78"/>
+      <circle cx="0" cy="-73" r="6.5" fill="#3df5ff" stroke="#ffffff" stroke-width="1.8"/>
+      <circle cx="-25" cy="-69" r="4.8" fill="#ff4d6d" stroke="#ffffff" stroke-width="1.2"/>
+      <circle cx="25" cy="-69" r="4.8" fill="#3df5ff" stroke="#ffffff" stroke-width="1.2"/>
+      <g transform="translate(0, -142)">
+        <circle cx="0" cy="0" r="28" fill="#00f0ff" opacity="0.30"/>
+        <polygon points="-8,-26 8,-26 6,-6 26,-8 26,8 6,6 8,26 -8,26 -6,6 -26,8 -26,-8 -6,-6" fill="url(#gold_grad)" stroke="#091124" stroke-width="4" stroke-linejoin="round"/>
+        <polygon points="0,-12 12,0 0,12 -12,0" fill="#3df5ff" stroke="#ffffff" stroke-width="1.5"/>
+      </g>
+    </g>
+
+    <!-- 4-лучевые звёзды -->
+    <polygon points="94,116 98,128 110,132 98,136 94,148 90,136 78,132 90,128" fill="#3df5ff"/>
+    <polygon points="418,116 422,128 434,132 422,136 418,148 414,136 402,132 414,128" fill="#ffd166"/>
+  </g>
+</svg>

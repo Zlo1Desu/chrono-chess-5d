@@ -1,0 +1,32 @@
+# Godot 4+ cache & import
+.godot/
+
+# Godot-specific
+*.translation
+
+# Exported binaries & signatures (store via GitHub Releases instead)
+*.apk
+*.idsig
+*.aab
+*.exe
+*.pck
+
+# Keystores & sensitive credentials
+*.keystore
+*.jks
+export_credentials.cfg
+
+# Python (server)
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Temporary / scratch
+scratch/
+find_server_version.py
+
+# System
+.DS_Store
+Thumbs.db

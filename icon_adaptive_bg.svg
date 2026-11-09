@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg_cosmos" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#1d336e"/>
+      <stop offset="48%" stop-color="#0b132c"/>
+      <stop offset="100%" stop-color="#040711"/>
+    </radialGradient>
+    <radialGradient id="nebula_cyan" cx="50%" cy="45%" r="52%">
+      <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.45"/>
+      <stop offset="48%" stop-color="#3a66ff" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula_gold" cx="50%" cy="32%" r="40%">
+      <stop offset="0%" stop-color="#ffd166" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#ff6b00" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Полная заливка без скруглений для адаптивной маски Android -->
+  <rect width="512" height="512" fill="url(#bg_cosmos)"/>
+  <circle cx="256" cy="240" r="250" fill="url(#nebula_cyan)"/>
+  <circle cx="256" cy="180" r="195" fill="url(#nebula_gold)"/>
+
+  <!-- Фоновые парящие доски мультивселенной -->
+  <g opacity="0.30" transform="translate(76, 92) rotate(-14)">
+    <polygon points="52,0 104,25 52,50 0,25" fill="#0d1b38" stroke="#3df5ff" stroke-width="2.5"/>
+    <polygon points="52,0 78,12.5 52,25 26,12.5" fill="#3df5ff" opacity="0.5"/>
+    <polygon points="52,25 78,37.5 52,50 26,37.5" fill="#3df5ff" opacity="0.5"/>
+  </g>
+  <g opacity="0.30" transform="translate(332, 80) rotate(14)">
+    <polygon points="52,0 104,25 52,50 0,25" fill="#1f1135" stroke="#ffd166" stroke-width="2.5"/>
+    <polygon points="52,0 78,12.5 52,25 26,12.5" fill="#ffd166" opacity="0.5"/>
+    <polygon points="52,25 78,37.5 52,50 26,37.5" fill="#ffd166" opacity="0.5"/>
+  </g>
+
+  <!-- Звёзды -->
+  <g fill="#ffffff">
+    <circle cx="96" cy="196" r="2.4" opacity="0.7"/>
+    <circle cx="416" cy="204" r="2.6" opacity="0.75"/>
+    <circle cx="104" cy="336" r="2.0" opacity="0.55"/>
+    <circle cx="408" cy="340" r="2.2" opacity="0.65"/>
+  </g>
+</svg>
