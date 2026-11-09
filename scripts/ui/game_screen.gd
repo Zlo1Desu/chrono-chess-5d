@@ -182,24 +182,24 @@ func _build_hud() -> void:
 	top_row.add_theme_constant_override("separation", 8)
 	_top_panel.add_child(top_row)
 
-	_menu_btn = _button("☰ Меню", _on_menu)
+	_menu_btn = _button("Меню", _on_menu)
 	top_row.add_child(_menu_btn)
 
 	if mode == MODE_PUZZLE:
-		var restart_btn := _button("🔄 Заново", _restart_puzzle)
+		var restart_btn := _button("Заново", _restart_puzzle)
 		_puz_restart_btn = restart_btn
 		top_row.add_child(restart_btn)
 
-		var hint_btn := _button("💡 Подсказка", func():
+		var hint_btn := _button("Подсказка", func():
 			var hint_dlg := AcceptDialog.new()
-			hint_dlg.title = "💡 Подсказка к задаче"
+			hint_dlg.title = "Подсказка к задаче"
 			hint_dlg.dialog_text = str(puzzle_data.get("hint", "Ищите слабости короля соперника."))
 			add_child(hint_dlg)
 			hint_dlg.popup_centered())
 		_puz_hint_btn = hint_btn
 		top_row.add_child(hint_btn)
 
-		var next_btn := _button("🎲 Новая", func():
+		var next_btn := _button("Следующая", func():
 			var cur_diff: int = int(puzzle_data.get("difficulty", 1))
 			var new_puz: Dictionary = Puzzles.generate_procedural_puzzle(cur_diff)
 			load_puzzle(new_puz))
@@ -212,19 +212,20 @@ func _build_hud() -> void:
 
 	_status = Label.new()
 	_status.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_status.add_theme_font_size_override("font_size", 24)
+	_status.add_theme_font_size_override("font_size", 20)
+	_status.add_theme_color_override("font_color", Color(0.95, 0.96, 0.98))
 	vb.add_child(_status)
 
 	_info = Label.new()
 	_info.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_info.add_theme_font_size_override("font_size", 16)
-	_info.modulate = Color(0.75, 0.8, 1.0)
+	_info.add_theme_font_size_override("font_size", 13)
+	_info.add_theme_color_override("font_color", Color(0.58, 0.66, 0.78))
 	vb.add_child(_info)
 
-	_autofocus_btn = _button("◎ Слежка: ВКЛ", _toggle_autofocus)
+	_autofocus_btn = _button("Слежка: ВКЛ", _toggle_autofocus)
 	top_row.add_child(_autofocus_btn)
 
-	_present_btn = _button("◎ К настоящему", func():
+	_present_btn = _button("К настоящему", func():
 		auto_follow_present = true
 		_update_autofocus_btn()
 		view.focus_present(true))
@@ -241,26 +242,30 @@ func _build_hud() -> void:
 	row.add_theme_constant_override("separation", 10)
 	_bottom_panel.add_child(row)
 
-	_btn_undo = _button("↶ Отменить", _on_undo)
+	_btn_undo = _button("Отменить", _on_undo)
 	_btn_undo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-	_btn_reset = _button("⟲ Сбросить", _on_reset)
+	_btn_reset = _button("Сбросить", _on_reset)
 	_btn_reset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-	_btn_submit = _button("✔ Завершить ход", _on_submit)
+	_btn_submit = _button("Завершить ход", _on_submit)
 	_btn_submit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var sub_sb := StyleBoxFlat.new()
-	sub_sb.bg_color = Color(0.12, 0.44, 0.72)
-	sub_sb.border_color = Color(0.35, 0.75, 1.0)
+	sub_sb.bg_color = Color(0.15, 0.39, 0.92, 0.98)
+	sub_sb.border_color = Color(0.38, 0.65, 0.98, 0.95)
 	sub_sb.set_border_width_all(1)
-	sub_sb.set_corner_radius_all(10)
+	sub_sb.set_corner_radius_all(8)
 	sub_sb.content_margin_left = 12
 	sub_sb.content_margin_right = 12
 	_btn_submit.add_theme_stylebox_override("normal", sub_sb)
 	var sub_hover: StyleBoxFlat = sub_sb.duplicate()
-	sub_hover.bg_color = Color(0.18, 0.54, 0.88)
+	sub_hover.bg_color = Color(0.22, 0.48, 0.98, 1.0)
 	_btn_submit.add_theme_stylebox_override("hover", sub_hover)
+	var sub_dis: StyleBoxFlat = sub_sb.duplicate()
+	sub_dis.bg_color = Color(0.09, 0.12, 0.18, 0.55)
+	sub_dis.border_color = Color(0.16, 0.22, 0.32, 0.4)
+	_btn_submit.add_theme_stylebox_override("disabled", sub_dis)
 
 	row.add_child(_btn_undo)
 	row.add_child(_btn_reset)
@@ -308,93 +313,93 @@ func _on_viewport_resized() -> void:
 	_bottom_panel.add_theme_stylebox_override("panel", bot_sb)
 
 	if is_phone_portrait:
-		_menu_btn.text = "☰"
-		_menu_btn.custom_minimum_size = Vector2(46, 46)
-		_present_btn.text = "⇥"
-		_present_btn.custom_minimum_size = Vector2(46, 46)
-		_status.add_theme_font_size_override("font_size", 15)
+		_menu_btn.text = "Меню"
+		_menu_btn.custom_minimum_size = Vector2(62, 42)
+		_present_btn.text = "Наст."
+		_present_btn.custom_minimum_size = Vector2(58, 42)
+		_status.add_theme_font_size_override("font_size", 14)
 		_info.add_theme_font_size_override("font_size", 11)
-		_btn_undo.text = "↶"
-		_btn_reset.text = "⟲"
-		_btn_submit.text = "✔ Ход"
+		_btn_undo.text = "Отмена"
+		_btn_reset.text = "Сброс"
+		_btn_submit.text = "Завершить"
 		for b in [_btn_undo, _btn_reset, _btn_submit]:
-			b.custom_minimum_size = Vector2(0, 48)
-			b.add_theme_font_size_override("font_size", 15)
+			b.custom_minimum_size = Vector2(0, 44)
+			b.add_theme_font_size_override("font_size", 14)
 		if _puz_restart_btn != null:
-			_puz_restart_btn.text = "🔄"
-			_puz_restart_btn.custom_minimum_size = Vector2(42, 46)
+			_puz_restart_btn.text = "Заново"
+			_puz_restart_btn.custom_minimum_size = Vector2(64, 42)
 		if _puz_hint_btn != null:
-			_puz_hint_btn.text = "💡"
-			_puz_hint_btn.custom_minimum_size = Vector2(42, 46)
+			_puz_hint_btn.text = "Подск."
+			_puz_hint_btn.custom_minimum_size = Vector2(64, 42)
 		if _puz_next_btn != null:
-			_puz_next_btn.text = "🎲"
-			_puz_next_btn.custom_minimum_size = Vector2(42, 46)
+			_puz_next_btn.text = "След."
+			_puz_next_btn.custom_minimum_size = Vector2(58, 42)
 	elif is_compact:
-		_menu_btn.text = "☰ Меню"
-		_menu_btn.custom_minimum_size = Vector2(64, 48)
-		_present_btn.text = "⇥ Наст."
-		_present_btn.custom_minimum_size = Vector2(64, 48)
+		_menu_btn.text = "Меню"
+		_menu_btn.custom_minimum_size = Vector2(72, 44)
+		_present_btn.text = "Настоящее"
+		_present_btn.custom_minimum_size = Vector2(96, 44)
 		_status.add_theme_font_size_override("font_size", 16)
 		_info.add_theme_font_size_override("font_size", 12)
-		_btn_undo.text = "↶ Отмена"
-		_btn_reset.text = "⟲ Сброс"
-		_btn_submit.text = "✔ Ход"
+		_btn_undo.text = "Отмена"
+		_btn_reset.text = "Сброс"
+		_btn_submit.text = "Завершить ход"
+		for b in [_btn_undo, _btn_reset, _btn_submit]:
+			b.custom_minimum_size = Vector2(0, 46)
+			b.add_theme_font_size_override("font_size", 14)
+		if _puz_restart_btn != null:
+			_puz_restart_btn.text = "Заново"
+			_puz_restart_btn.custom_minimum_size = Vector2(76, 44)
+		if _puz_hint_btn != null:
+			_puz_hint_btn.text = "Подсказка"
+			_puz_hint_btn.custom_minimum_size = Vector2(90, 44)
+		if _puz_next_btn != null:
+			_puz_next_btn.text = "Новая"
+			_puz_next_btn.custom_minimum_size = Vector2(72, 44)
+	elif is_medium:
+		_menu_btn.text = "Меню"
+		_menu_btn.custom_minimum_size = Vector2(100, 46)
+		_present_btn.text = "Настоящее"
+		_present_btn.custom_minimum_size = Vector2(116, 46)
+		_status.add_theme_font_size_override("font_size", 18)
+		_info.add_theme_font_size_override("font_size", 13)
+		_btn_undo.text = "Отмена"
+		_btn_reset.text = "Сброс"
+		_btn_submit.text = "Завершить ход"
 		for b in [_btn_undo, _btn_reset, _btn_submit]:
 			b.custom_minimum_size = Vector2(0, 48)
 			b.add_theme_font_size_override("font_size", 15)
 		if _puz_restart_btn != null:
-			_puz_restart_btn.text = "🔄"
-			_puz_restart_btn.custom_minimum_size = Vector2(44, 48)
+			_puz_restart_btn.text = "Заново"
+			_puz_restart_btn.custom_minimum_size = Vector2(96, 46)
 		if _puz_hint_btn != null:
-			_puz_hint_btn.text = "💡"
-			_puz_hint_btn.custom_minimum_size = Vector2(44, 48)
+			_puz_hint_btn.text = "Подсказка"
+			_puz_hint_btn.custom_minimum_size = Vector2(106, 46)
 		if _puz_next_btn != null:
-			_puz_next_btn.text = "🎲"
-			_puz_next_btn.custom_minimum_size = Vector2(44, 48)
-	elif is_medium:
-		_menu_btn.text = "☰ Меню"
-		_menu_btn.custom_minimum_size = Vector2(110, 50)
-		_present_btn.text = "◎ Настоящее"
-		_present_btn.custom_minimum_size = Vector2(120, 50)
+			_puz_next_btn.text = "Следующая"
+			_puz_next_btn.custom_minimum_size = Vector2(100, 46)
+	else:
+		_menu_btn.text = "Меню"
+		_menu_btn.custom_minimum_size = Vector2(120, 48)
+		_present_btn.text = "К настоящему"
+		_present_btn.custom_minimum_size = Vector2(140, 48)
 		_status.add_theme_font_size_override("font_size", 20)
 		_info.add_theme_font_size_override("font_size", 14)
-		_btn_undo.text = "↶ Отмена"
-		_btn_reset.text = "⟲ Сброс"
-		_btn_submit.text = "✔ Завершить ход"
+		_btn_undo.text = "Отменить"
+		_btn_reset.text = "Сбросить"
+		_btn_submit.text = "Завершить ход"
 		for b in [_btn_undo, _btn_reset, _btn_submit]:
-			b.custom_minimum_size = Vector2(0, 50)
-			b.add_theme_font_size_override("font_size", 16)
+			b.custom_minimum_size = Vector2(0, 48)
+			b.add_theme_font_size_override("font_size", 15)
 		if _puz_restart_btn != null:
-			_puz_restart_btn.text = "🔄 Заново"
-			_puz_restart_btn.custom_minimum_size = Vector2(100, 50)
+			_puz_restart_btn.text = "Заново"
+			_puz_restart_btn.custom_minimum_size = Vector2(104, 48)
 		if _puz_hint_btn != null:
-			_puz_hint_btn.text = "💡 Подсказка"
-			_puz_hint_btn.custom_minimum_size = Vector2(110, 50)
+			_puz_hint_btn.text = "Подсказка"
+			_puz_hint_btn.custom_minimum_size = Vector2(116, 48)
 		if _puz_next_btn != null:
-			_puz_next_btn.text = "🎲 Новая"
-			_puz_next_btn.custom_minimum_size = Vector2(90, 50)
-	else:
-		_menu_btn.text = "☰ Меню"
-		_menu_btn.custom_minimum_size = Vector2(150, 52)
-		_present_btn.text = "◎ К настоящему"
-		_present_btn.custom_minimum_size = Vector2(150, 52)
-		_status.add_theme_font_size_override("font_size", 24)
-		_info.add_theme_font_size_override("font_size", 16)
-		_btn_undo.text = "↶ Отменить"
-		_btn_reset.text = "⟲ Сбросить"
-		_btn_submit.text = "✔ Завершить ход"
-		for b in [_btn_undo, _btn_reset, _btn_submit]:
-			b.custom_minimum_size = Vector2(0, 52)
-			b.add_theme_font_size_override("font_size", 17)
-		if _puz_restart_btn != null:
-			_puz_restart_btn.text = "🔄 Заново"
-			_puz_restart_btn.custom_minimum_size = Vector2(110, 52)
-		if _puz_hint_btn != null:
-			_puz_hint_btn.text = "💡 Подсказка"
-			_puz_hint_btn.custom_minimum_size = Vector2(120, 52)
-		if _puz_next_btn != null:
-			_puz_next_btn.text = "🎲 Новая"
-			_puz_next_btn.custom_minimum_size = Vector2(100, 52)
+			_puz_next_btn.text = "Следующая"
+			_puz_next_btn.custom_minimum_size = Vector2(104, 48)
 
 	_update_autofocus_btn()
 	if _opp_dc_banner != null and _top_panel != null:
@@ -404,14 +409,14 @@ func _on_viewport_resized() -> void:
 
 func _panel_style() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.06, 0.08, 0.15, 0.92)
-	sb.border_color = Color(0.24, 0.36, 0.62, 0.6)
+	sb.bg_color = Color(0.055, 0.075, 0.125, 0.96)
+	sb.border_color = Color(0.14, 0.19, 0.28, 0.85)
 	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(12)
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
-	sb.content_margin_top = 10
-	sb.content_margin_bottom = 10
+	sb.set_corner_radius_all(10)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
 	return sb
 
 
@@ -419,10 +424,10 @@ func _banner_style(bg: Color, border: Color) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg
 	sb.border_color = border
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(10)
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
 	sb.content_margin_top = 8
 	sb.content_margin_bottom = 8
 	return sb
@@ -431,35 +436,35 @@ func _banner_style(bg: Color, border: Color) -> StyleBoxFlat:
 func _button(text: String, cb: Callable = Callable()) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(150, 52)
+	b.custom_minimum_size = Vector2(120, 46)
 	b.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_filter = Control.MOUSE_FILTER_STOP
-	b.add_theme_font_size_override("font_size", 17)
+	b.add_theme_font_size_override("font_size", 15)
+	b.add_theme_color_override("font_color", Color(0.92, 0.95, 0.98))
 
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.12, 0.16, 0.28, 0.9)
-	sb.border_color = Color(0.32, 0.45, 0.72, 0.6)
+	sb.bg_color = Color(0.09, 0.13, 0.22, 0.94)
+	sb.border_color = Color(0.18, 0.25, 0.38, 0.85)
 	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(10)
-	sb.content_margin_left = 14
-	sb.content_margin_right = 14
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
 	b.add_theme_stylebox_override("normal", sb)
 
 	var hover: StyleBoxFlat = sb.duplicate()
-	hover.bg_color = Color(0.18, 0.24, 0.42, 0.95)
-	hover.border_color = Color(0.45, 0.65, 0.98, 0.9)
+	hover.bg_color = Color(0.13, 0.19, 0.32, 0.98)
+	hover.border_color = Color(0.32, 0.52, 0.84, 0.90)
 	b.add_theme_stylebox_override("hover", hover)
 
 	var pressed: StyleBoxFlat = sb.duplicate()
-	pressed.bg_color = Color(0.08, 0.12, 0.24, 0.98)
-	pressed.border_color = Color(0.55, 0.85, 1.0, 0.95)
-	pressed.set_border_width_all(2)
+	pressed.bg_color = Color(0.07, 0.10, 0.18, 1.0)
+	pressed.border_color = Color(0.38, 0.65, 0.98, 0.95)
 	b.add_theme_stylebox_override("pressed", pressed)
 
 	var disabled: StyleBoxFlat = sb.duplicate()
-	disabled.bg_color = Color(0.08, 0.09, 0.14, 0.5)
-	disabled.border_color = Color(0.18, 0.22, 0.32, 0.3)
+	disabled.bg_color = Color(0.07, 0.09, 0.14, 0.50)
+	disabled.border_color = Color(0.14, 0.18, 0.26, 0.35)
 	b.add_theme_stylebox_override("disabled", disabled)
 
 	if cb.is_valid():
@@ -802,14 +807,14 @@ func _update_autofocus_btn() -> void:
 		return
 	var w: float = get_viewport_rect().size.x
 	if w < 720.0:
-		_autofocus_btn.text = "◎" if auto_follow_present else "◌"
-		_autofocus_btn.custom_minimum_size = Vector2(46, 44)
+		_autofocus_btn.text = "Авто" if auto_follow_present else "Ручн."
+		_autofocus_btn.custom_minimum_size = Vector2(54, 42)
 	elif w < 960.0:
-		_autofocus_btn.text = "◎ Авто: ВКЛ" if auto_follow_present else "◎ Авто: ВЫКЛ"
-		_autofocus_btn.custom_minimum_size = Vector2(110, 48)
+		_autofocus_btn.text = "Авто: ВКЛ" if auto_follow_present else "Авто: ВЫКЛ"
+		_autofocus_btn.custom_minimum_size = Vector2(100, 46)
 	else:
-		_autofocus_btn.text = "◎ Слежка: ВКЛ" if auto_follow_present else "◎ Слежка: ВЫКЛ"
-		_autofocus_btn.custom_minimum_size = Vector2(150, 52)
+		_autofocus_btn.text = "Слежка: ВКЛ" if auto_follow_present else "Слежка: ВЫКЛ"
+		_autofocus_btn.custom_minimum_size = Vector2(130, 48)
 
 
 ## Общая обработка после того, как любая сторона (игрок, ИИ или соперник по сети)
@@ -1051,34 +1056,31 @@ func _on_reconnect_failed(reason: String) -> void:
 
 
 func _on_menu() -> void:
-	var modal: Array = _make_modal(14, 0.75)
+	var modal: Array = _make_modal(12, 0.78)
 	var overlay: Control = modal[0]
 	var vb: VBoxContainer = modal[1]
-	_modal_title(vb, "⚙ Настройки и пауза", 22)
+	_modal_title(vb, "Пауза и настройки", 20)
 
 	if mode == MODE_ONLINE:
 		var warn := Label.new()
-		warn.text = "Внимание: выход засчитает поражение в онлайн-игре!"
-		warn.add_theme_color_override("font_color", Color(1.0, 0.45, 0.45))
+		warn.text = "Выход из онлайн-партии засчитает поражение."
+		warn.add_theme_color_override("font_color", Color(0.95, 0.45, 0.45))
 		warn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		warn.add_theme_font_size_override("font_size", 13)
 		vb.add_child(warn)
 
-	# Кнопка масштаба UI
 	var scale_btn := _button(Settings.get_scale_label())
 	scale_btn.pressed.connect(func():
 		scale_btn.text = Settings.cycle_ui_scale(get_window())
 		_play("click"))
 
-	# Кнопка звука
 	var sfx_btn := _button(Settings.sound_label(sfx == null or sfx.enabled))
 	sfx_btn.pressed.connect(func():
 		if sfx != null:
 			sfx_btn.text = Settings.sound_label(sfx.toggle())
 			_play("move"))
 
-	# Кнопка выхода
-	var exit_btn := _button("🚪 Выйти в меню", func():
+	var exit_btn := _button("Выйти в меню", func():
 		overlay.queue_free()
 		if mode == MODE_ONLINE and net != null and not _game_over:
 			net.send_resign()
@@ -1086,13 +1088,12 @@ func _on_menu() -> void:
 			net.clear_active_session()
 		exit_requested.emit())
 
-	# Кнопка возврата к партии
-	var resume_btn := _button("✖ Продолжить игру", func():
+	var resume_btn := _button("Продолжить партию", func():
 		_play("click")
 		overlay.queue_free())
 
 	for b in [scale_btn, sfx_btn, exit_btn, resume_btn]:
-		b.custom_minimum_size = Vector2(260, 52)
+		b.custom_minimum_size = Vector2(250, 46)
 		vb.add_child(b)
 
 

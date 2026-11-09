@@ -135,14 +135,14 @@ func _on_viewport_resized() -> void:
 		_bot_panel.add_theme_stylebox_override("panel", bot_sb)
 
 	if _mode_title != null:
-		var prefix := "🎲 D20 · " if is_d20_mode else ""
+		var prefix := "D20 · " if is_d20_mode else ""
 		match game_mode:
 			MultiChessState.MODE_1V1V1:
-				_mode_title.text = (prefix + "1х1х1") if is_compact else (prefix + "⚔ 1х1х1 (FFA)")
+				_mode_title.text = (prefix + "1×1×1") if is_compact else (prefix + "1×1×1 (3 игрока)")
 			MultiChessState.MODE_2V2:
-				_mode_title.text = (prefix + "2х2") if is_compact else (prefix + "🛡 2х2 (Команда)")
+				_mode_title.text = (prefix + "2×2") if is_compact else (prefix + "2×2 (Команды)")
 			MultiChessState.MODE_1V1V1V1:
-				_mode_title.text = (prefix + "1х1х1х1") if is_compact else (prefix + "⚔ 1х1х1х1 (FFA)")
+				_mode_title.text = (prefix + "1×1×1×1") if is_compact else (prefix + "1×1×1×1 (4 игрока)")
 
 	if _turn_badge != null:
 		_turn_badge.custom_minimum_size.x = 140 if is_compact else 210
@@ -163,29 +163,40 @@ func _build_ui() -> void:
 	_top_panel.add_child(top_hb)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "⚙ Меню"
-	menu_btn.custom_minimum_size = Vector2(84, 40)
+	menu_btn.text = "Меню"
+	menu_btn.custom_minimum_size = Vector2(76, 38)
+	menu_btn.focus_mode = Control.FOCUS_NONE
+	var m_sb := StyleBoxFlat.new()
+	m_sb.bg_color = Color(0.09, 0.13, 0.22, 0.94)
+	m_sb.border_color = Color(0.18, 0.25, 0.38, 0.85)
+	m_sb.set_border_width_all(1)
+	m_sb.set_corner_radius_all(8)
+	m_sb.content_margin_left = 10
+	m_sb.content_margin_right = 10
+	menu_btn.add_theme_stylebox_override("normal", m_sb)
 	menu_btn.pressed.connect(_on_menu_pressed)
 	top_hb.add_child(menu_btn)
 
 	_mode_title = Label.new()
-	_mode_title.add_theme_font_size_override("font_size", 16)
-	_mode_title.add_theme_color_override("font_color", Color(0.95, 0.96, 1.0))
+	_mode_title.add_theme_font_size_override("font_size", 15)
+	_mode_title.add_theme_color_override("font_color", Color(0.94, 0.95, 0.98))
 	top_hb.add_child(_mode_title)
 
 	_turn_count_lbl = Label.new()
 	_turn_count_lbl.add_theme_font_size_override("font_size", 13)
-	_turn_count_lbl.add_theme_color_override("font_color", Color(0.65, 0.8, 1.0))
+	_turn_count_lbl.add_theme_color_override("font_color", Color(0.58, 0.66, 0.78))
 	top_hb.add_child(_turn_count_lbl)
 
 	if net != null and net.room_code != "":
 		_net_badge_btn = Button.new()
-		_net_badge_btn.text = "🔑 " + net.room_code
+		_net_badge_btn.text = "Код: " + net.room_code
 		_net_badge_btn.tooltip_text = "Нажмите, чтобы скопировать код комнаты"
-		_net_badge_btn.custom_minimum_size = Vector2(85, 38)
+		_net_badge_btn.custom_minimum_size = Vector2(90, 36)
+		_net_badge_btn.focus_mode = Control.FOCUS_NONE
+		_net_badge_btn.add_theme_stylebox_override("normal", m_sb)
 		_net_badge_btn.pressed.connect(func():
 			DisplayServer.clipboard_set(net.room_code)
-			_net_badge_btn.text = "✔ Скопирован!")
+			_net_badge_btn.text = "Скопирован")
 		top_hb.add_child(_net_badge_btn)
 
 	top_hb.add_child(Control.new())
@@ -800,8 +811,8 @@ func _on_menu_pressed() -> void:
 
 func _panel_style(margin: int = 12) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.06, 0.08, 0.15, 0.94)
-	sb.border_color = Color(0.22, 0.30, 0.50, 0.65)
+	sb.bg_color = Color(0.055, 0.075, 0.125, 0.96)
+	sb.border_color = Color(0.14, 0.19, 0.28, 0.85)
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(10)
 	sb.content_margin_left = margin
