@@ -16,7 +16,8 @@
 *.jks
 export_credentials.cfg
 
-# Python (server)
+# Python (server backend excluded from public repo)
+server/
 __pycache__/
 *.py[cod]
 *$py.class
