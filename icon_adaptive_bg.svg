@@ -1,18 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 512 512">
-  <!-- Глубокий графитово-сланцевый фон без скруглений для адаптивной маски Android -->
-  <rect width="512" height="512" fill="#0B0F19"/>
-  <circle cx="256" cy="256" r="196" fill="#0F1626" stroke="#1E2B42" stroke-width="5"/>
-  <circle cx="256" cy="256" r="172" fill="none" stroke="#C89B3C" stroke-width="3" opacity="0.72"/>
-
-  <!-- Тонкие деления хронометра -->
-  <g transform="translate(256, 256)" stroke="#C89B3C" stroke-linecap="round" opacity="0.75">
-    <line x1="0" y1="-172" x2="0" y2="-158" stroke-width="4.5"/>
-    <line x1="172" y1="0" x2="158" y2="0" stroke-width="4.5"/>
-    <line x1="0" y1="172" x2="0" y2="158" stroke-width="4.5"/>
-    <line x1="-172" y1="0" x2="-158" y2="0" stroke-width="4.5"/>
-    <line x1="122" y1="-122" x2="112" y2="-112" stroke-width="3.2"/>
-    <line x1="-122" y1="-122" x2="-112" y2="-112" stroke-width="3.2"/>
-    <line x1="122" y1="122" x2="112" y2="112" stroke-width="3.2"/>
-    <line x1="-122" y1="122" x2="-112" y2="112" stroke-width="3.2"/>
-  </g>
+  <defs>
+    <linearGradient id="gold_metal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE066"/>
+      <stop offset="25%" stop-color="#D4A843"/>
+      <stop offset="60%" stop-color="#936B1A"/>
+      <stop offset="85%" stop-color="#E2B74B"/>
+      <stop offset="100%" stop-color="#FFE066"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="#070A12"/>
+  <circle cx="256" cy="256" r="240" fill="#0D1322"/>
+  <circle cx="256" cy="256" r="216" fill="#080C16" stroke="url(#gold_metal)" stroke-width="8"/>
+  <circle cx="256" cy="256" r="200" fill="#0E1626" stroke="#25354F" stroke-width="3"/>
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#D4A843" stroke-width="2.5" opacity="0.6"/>
+  <circle cx="256" cy="256" r="148" fill="none" stroke="#38BDF8" stroke-width="1.8" stroke-dasharray="6 8" opacity="0.45"/>
+  <circle cx="256" cy="256" r="118" fill="none" stroke="#818CF8" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.4"/>
 </svg>

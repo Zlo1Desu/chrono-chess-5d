@@ -1,132 +1,311 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- 1. ГЛУБОКИЙ ГРАФИТОВО-СЛАНЦЕВЫЙ ФОН (#0B0F19) В СТИЛЕ ИГРЫ -->
-  <rect width="512" height="512" rx="112" fill="#0B0F19"/>
-  <rect x="14" y="14" width="484" height="484" rx="98" fill="#111827" stroke="#24324B" stroke-width="4"/>
-
-  <!-- Внутренний гербовый медальон (сдержанный сланцевый круг с тонким латунным ободом) -->
-  <circle cx="256" cy="256" r="204" fill="#0D1320" stroke="#1E2B42" stroke-width="6"/>
-  <circle cx="256" cy="256" r="188" fill="none" stroke="#C89B3C" stroke-width="3" opacity="0.75"/>
-
-  <!-- Тонкие деления хронометра по ободу медальона -->
-  <g transform="translate(256, 256)" stroke="#C89B3C" stroke-linecap="round" opacity="0.8">
-    <line x1="0" y1="-188" x2="0" y2="-172" stroke-width="5"/>
-    <line x1="188" y1="0" x2="172" y2="0" stroke-width="5"/>
-    <line x1="0" y1="188" x2="0" y2="172" stroke-width="5"/>
-    <line x1="-188" y1="0" x2="-172" y2="0" stroke-width="5"/>
-    <line x1="133" y1="-133" x2="122" y2="-122" stroke-width="3.5"/>
-    <line x1="-133" y1="-133" x2="-122" y2="-122" stroke-width="3.5"/>
-    <line x1="133" y1="133" x2="122" y2="122" stroke-width="3.5"/>
-    <line x1="-133" y1="133" x2="-122" y2="122" stroke-width="3.5"/>
+  <defs>
+    <linearGradient id="gold_metal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE066"/>
+      <stop offset="25%" stop-color="#D4A843"/>
+      <stop offset="60%" stop-color="#936B1A"/>
+      <stop offset="85%" stop-color="#E2B74B"/>
+      <stop offset="100%" stop-color="#FFE066"/>
+    </linearGradient>
+    <linearGradient id="gold_hand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF2A3"/>
+      <stop offset="100%" stop-color="#C29124"/>
+    </linearGradient>
+  </defs>
+  <!-- ОСНОВА -->
+  <rect width="512" height="512" rx="112" fill="#070A12"/>
+  <rect x="14" y="14" width="484" height="484" rx="98" fill="#0D1322" stroke="#1E2B42" stroke-width="4"/>
+  <circle cx="256" cy="256" r="216" fill="#080C16" stroke="url(#gold_metal)" stroke-width="8"/>
+  <circle cx="256" cy="256" r="200" fill="#0E1626" stroke="#25354F" stroke-width="3"/>
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#D4A843" stroke-width="2.5" opacity="0.6"/>
+  <circle cx="256" cy="256" r="148" fill="none" stroke="#38BDF8" stroke-width="1.8" stroke-dasharray="6 8" opacity="0.45"/>
+  <circle cx="256" cy="256" r="118" fill="none" stroke="#818CF8" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.4"/>
+  <circle cx="256" cy="256" r="88" fill="#141E34" opacity="0.7"/>
+  <circle cx="256" cy="256" r="62" fill="#182542" opacity="0.8"/>
+  <circle cx="256" cy="256" r="38" fill="#1C2E54" opacity="0.9"/>
+  <g stroke="#94A3B8" stroke-linecap="round" opacity="0.65">
+    <line x1="276.5" y1="61.1" x2="275.7" y2="69.0" stroke-width="2.2"/>
+    <line x1="296.8" y1="64.3" x2="295.1" y2="72.1" stroke-width="2.2"/>
+    <line x1="316.6" y1="69.6" x2="314.1" y2="77.2" stroke-width="2.2"/>
+    <line x1="335.7" y1="76.9" x2="332.5" y2="84.3" stroke-width="2.2"/>
+    <line x1="371.2" y1="97.4" x2="366.5" y2="103.9" stroke-width="2.2"/>
+    <line x1="387.1" y1="110.3" x2="381.8" y2="116.3" stroke-width="2.2"/>
+    <line x1="401.7" y1="124.9" x2="395.7" y2="130.2" stroke-width="2.2"/>
+    <line x1="414.6" y1="140.8" x2="408.1" y2="145.5" stroke-width="2.2"/>
+    <line x1="435.1" y1="176.3" x2="427.7" y2="179.5" stroke-width="2.2"/>
+    <line x1="442.4" y1="195.4" x2="434.8" y2="197.9" stroke-width="2.2"/>
+    <line x1="447.7" y1="215.2" x2="439.9" y2="216.9" stroke-width="2.2"/>
+    <line x1="450.9" y1="235.5" x2="443.0" y2="236.3" stroke-width="2.2"/>
+    <line x1="450.9" y1="276.5" x2="443.0" y2="275.7" stroke-width="2.2"/>
+    <line x1="447.7" y1="296.8" x2="439.9" y2="295.1" stroke-width="2.2"/>
+    <line x1="442.4" y1="316.6" x2="434.8" y2="314.1" stroke-width="2.2"/>
+    <line x1="435.1" y1="335.7" x2="427.7" y2="332.5" stroke-width="2.2"/>
+    <line x1="414.6" y1="371.2" x2="408.1" y2="366.5" stroke-width="2.2"/>
+    <line x1="401.7" y1="387.1" x2="395.7" y2="381.8" stroke-width="2.2"/>
+    <line x1="387.1" y1="401.7" x2="381.8" y2="395.7" stroke-width="2.2"/>
+    <line x1="371.2" y1="414.6" x2="366.5" y2="408.1" stroke-width="2.2"/>
+    <line x1="335.7" y1="435.1" x2="332.5" y2="427.7" stroke-width="2.2"/>
+    <line x1="316.6" y1="442.4" x2="314.1" y2="434.8" stroke-width="2.2"/>
+    <line x1="296.8" y1="447.7" x2="295.1" y2="439.9" stroke-width="2.2"/>
+    <line x1="276.5" y1="450.9" x2="275.7" y2="443.0" stroke-width="2.2"/>
+    <line x1="235.5" y1="450.9" x2="236.3" y2="443.0" stroke-width="2.2"/>
+    <line x1="215.2" y1="447.7" x2="216.9" y2="439.9" stroke-width="2.2"/>
+    <line x1="195.4" y1="442.4" x2="197.9" y2="434.8" stroke-width="2.2"/>
+    <line x1="176.3" y1="435.1" x2="179.5" y2="427.7" stroke-width="2.2"/>
+    <line x1="140.8" y1="414.6" x2="145.5" y2="408.1" stroke-width="2.2"/>
+    <line x1="124.9" y1="401.7" x2="130.2" y2="395.7" stroke-width="2.2"/>
+    <line x1="110.3" y1="387.1" x2="116.3" y2="381.8" stroke-width="2.2"/>
+    <line x1="97.4" y1="371.2" x2="103.9" y2="366.5" stroke-width="2.2"/>
+    <line x1="76.9" y1="335.7" x2="84.3" y2="332.5" stroke-width="2.2"/>
+    <line x1="69.6" y1="316.6" x2="77.2" y2="314.1" stroke-width="2.2"/>
+    <line x1="64.3" y1="296.8" x2="72.1" y2="295.1" stroke-width="2.2"/>
+    <line x1="61.1" y1="276.5" x2="69.0" y2="275.7" stroke-width="2.2"/>
+    <line x1="61.1" y1="235.5" x2="69.0" y2="236.3" stroke-width="2.2"/>
+    <line x1="64.3" y1="215.2" x2="72.1" y2="216.9" stroke-width="2.2"/>
+    <line x1="69.6" y1="195.4" x2="77.2" y2="197.9" stroke-width="2.2"/>
+    <line x1="76.9" y1="176.3" x2="84.3" y2="179.5" stroke-width="2.2"/>
+    <line x1="97.4" y1="140.8" x2="103.9" y2="145.5" stroke-width="2.2"/>
+    <line x1="110.3" y1="124.9" x2="116.3" y2="130.2" stroke-width="2.2"/>
+    <line x1="124.9" y1="110.3" x2="130.2" y2="116.3" stroke-width="2.2"/>
+    <line x1="140.8" y1="97.4" x2="145.5" y2="103.9" stroke-width="2.2"/>
+    <line x1="176.3" y1="76.9" x2="179.5" y2="84.3" stroke-width="2.2"/>
+    <line x1="195.4" y1="69.6" x2="197.9" y2="77.2" stroke-width="2.2"/>
+    <line x1="215.2" y1="64.3" x2="216.9" y2="72.1" stroke-width="2.2"/>
+    <line x1="235.5" y1="61.1" x2="236.3" y2="69.0" stroke-width="2.2"/>
   </g>
-
-  <!-- 2. ВЕРХНЯЯ ДОСКА ПРОШЛОГО / АЛЬТЕРНАТИВНОЙ ВЕТВИ (L+1, СЛЕВА) -->
-  <g transform="translate(182, 292)">
-    <!-- Контактная тень верхней доски -->
-    <polygon points="0,-50 132,6 0,62 -132,6" fill="#060911" opacity="0.75"/>
-    <!-- Боковая толщина доски L+1 -->
-    <polygon points="-124,0 0,48 0,66 -124,18" fill="#2A4368" stroke="#14110E" stroke-width="5.5" stroke-linejoin="round"/>
-    <polygon points="0,48 124,0 124,18 0,66" fill="#1B2C47" stroke="#14110E" stroke-width="5.5" stroke-linejoin="round"/>
-    <!-- Верхняя плоскость доски L+1 -->
-    <polygon points="0,-48 124,0 0,48 -124,0" fill="#24344E" stroke="#589AF8" stroke-width="5" stroke-linejoin="round"/>
-    <!-- Клетки 2x2 -->
-    <polygon points="0,-38 50,-19 0,0 -50,-19" fill="#DCE3EE"/>
-    <polygon points="0,0 50,19 0,38 -50,19" fill="#C6D2E4"/>
-    <polygon points="-50,-19 0,0 -50,19 -100,0" fill="#2B3E5E"/>
-    <polygon points="50,-19 100,0 50,19 0,0" fill="#22324D"/>
-    <polygon points="0,-38 100,0 0,38 -100,0" fill="none" stroke="#14110E" stroke-width="3.5" stroke-linejoin="round"/>
+  <g stroke="url(#gold_metal)" stroke-linecap="round">
+    <line x1="256.0" y1="59.0" x2="256.0" y2="76.0" stroke-width="5.0"/>
+    <line x1="354.5" y1="85.4" x2="346.0" y2="100.1" stroke-width="3.5"/>
+    <line x1="426.6" y1="157.5" x2="411.9" y2="166.0" stroke-width="3.5"/>
+    <line x1="453.0" y1="256.0" x2="436.0" y2="256.0" stroke-width="5.0"/>
+    <line x1="426.6" y1="354.5" x2="411.9" y2="346.0" stroke-width="3.5"/>
+    <line x1="354.5" y1="426.6" x2="346.0" y2="411.9" stroke-width="3.5"/>
+    <line x1="256.0" y1="453.0" x2="256.0" y2="436.0" stroke-width="5.0"/>
+    <line x1="157.5" y1="426.6" x2="166.0" y2="411.9" stroke-width="3.5"/>
+    <line x1="85.4" y1="354.5" x2="100.1" y2="346.0" stroke-width="3.5"/>
+    <line x1="59.0" y1="256.0" x2="76.0" y2="256.0" stroke-width="5.0"/>
+    <line x1="85.4" y1="157.5" x2="100.1" y2="166.0" stroke-width="3.5"/>
+    <line x1="157.5" y1="85.4" x2="166.0" y2="100.1" stroke-width="3.5"/>
   </g>
-
-  <!-- 3. ТЁМНЫЙ КОРОЛЬ СТАУНТОН (СТОИТ НА ВЕРХНЕЙ ДОСКЕ L+1) -->
-  <g transform="translate(182, 186) scale(1.62)">
-    <!-- Контактная тень на доске L+1 -->
-    <ellipse cx="0" cy="60" rx="38" ry="10" fill="#080C14" opacity="0.7"/>
-
-    <!-- Крест Стаунтона на вершине -->
-    <path d="M -5 -68 L 5 -68 L 5 -58 L 14 -58 L 14 -48 L 5 -48 L 5 -36 L -5 -36 L -5 -48 L -14 -48 L -14 -58 L -5 -58 Z" fill="#E0B44C"/>
-    <path d="M 0 -68 L 5 -68 L 5 -58 L 14 -58 L 14 -48 L 5 -48 L 5 -36 L 0 -36 Z" fill="#B08428"/>
-    <path d="M -5 -68 L 5 -68 L 5 -58 L 14 -58 L 14 -48 L 5 -48 L 5 -36 L -5 -36 L -5 -48 L -14 -48 L -14 -58 L -5 -58 Z" fill="none" stroke="#14110E" stroke-width="4.2" stroke-linejoin="round"/>
-
-    <!-- Купол короны -->
-    <path d="M -22 -22 C -22 -42, 22 -42, 22 -22 Z" fill="#E0B44C" stroke="#14110E" stroke-width="4.2" stroke-linejoin="round"/>
-
-    <!-- Корпус короля (двухтоновый cel-shading: сапфировый сланец) -->
-    <path d="M -25 36 L -31 -22 C -16 -30, 16 -30, 31 -22 L 25 36 Z" fill="#324768"/>
-    <path d="M 0 -28 C 16 -28, 31 -22, 31 -22 L 25 36 L 0 36 Z" fill="#1E2C44"/>
-    <path d="M -25 36 L -31 -22 C -16 -30, 16 -30, 31 -22 L 25 36 Z" fill="none" stroke="#14110E" stroke-width="4.5" stroke-linejoin="round"/>
-
-    <!-- Латунный воротник -->
-    <rect x="-28" y="-12" width="56" height="9" rx="4.5" fill="#E0B44C" stroke="#14110E" stroke-width="4"/>
-    <rect x="0" y="-10" width="26" height="5" fill="#B08428"/>
-
-    <!-- Вертикальная грань -->
-    <line x1="0" y1="-2" x2="0" y2="34" stroke="#4A6896" stroke-width="3" stroke-linecap="round"/>
-
-    <!-- Латунное кольцо основания -->
-    <rect x="-29" y="32" width="58" height="9" rx="4.5" fill="#E0B44C" stroke="#14110E" stroke-width="4"/>
-
-    <!-- Ступенчатый пьедестал -->
-    <path d="M -38 56 C -38 43, -29 39, -24 39 L 24 39 C 29 39, 38 43, 38 56 Z" fill="#324768"/>
-    <path d="M 0 39 L 24 39 C 29 39, 38 43, 38 56 L 0 56 Z" fill="#1E2C44"/>
-    <path d="M -38 56 C -38 43, -29 39, -24 39 L 24 39 C 29 39, 38 43, 38 56 Z" fill="none" stroke="#14110E" stroke-width="4.5" stroke-linejoin="round"/>
-    <rect x="-41" y="52" width="82" height="9" rx="4.5" fill="#162032" stroke="#14110E" stroke-width="4.2"/>
+  <g fill="#FFE066" stroke="#0E1626" stroke-width="1.2">
+    <path d="M 239 84 L 244 84 L 247 90 L 250 84 L 255 84 L 249 94 L 255 104 L 250 104 L 247 98 L 244 104 L 239 104 L 245 94 Z"/>
+    <path d="M 258 84 L 263 84 L 263 104 L 258 104 Z"/>
+    <path d="M 266 84 L 271 84 L 271 104 L 266 104 Z"/>
+    <path d="M 408 246 L 413 246 L 413 266 L 408 266 Z"/>
+    <path d="M 416 246 L 421 246 L 421 266 L 416 266 Z"/>
+    <path d="M 424 246 L 429 246 L 429 266 L 424 266 Z"/>
+    <path d="M 244 408 L 249 408 L 253 422 L 257 408 L 262 408 L 255 428 L 251 428 Z"/>
+    <path d="M 265 408 L 270 408 L 270 428 L 265 428 Z"/>
+    <path d="M 85 246 L 90 246 L 90 266 L 85 266 Z"/>
+    <path d="M 93 246 L 98 246 L 101 252 L 104 246 L 109 246 L 103 256 L 109 266 L 104 266 L 101 260 L 98 266 L 93 266 L 99 256 Z"/>
   </g>
-
-  <!-- 4. ГЛАВНАЯ НИЖНЯЯ ДОСКА НАСТОЯЩЕГО (L0, СПРАВА-ВНИЗУ) -->
-  <g transform="translate(284, 398)">
-    <!-- Контактная тень доски -->
-    <polygon points="0,-64 172,6 0,76 -172,6" fill="#060911" opacity="0.82"/>
-    <!-- Боковая толщина доски (латунно-золотая рамка активной доски Present) -->
-    <polygon points="-160,0 0,60 0,82 -160,22" fill="#9E7628" stroke="#14110E" stroke-width="6" stroke-linejoin="round"/>
-    <polygon points="0,60 160,0 160,22 0,82" fill="#6E4F16" stroke="#14110E" stroke-width="6" stroke-linejoin="round"/>
-    <!-- Верхняя плоскость доски -->
-    <polygon points="0,-60 160,0 0,60 -160,0" fill="#1E2B40" stroke="#D4A843" stroke-width="6" stroke-linejoin="round"/>
-    <!-- Шахматные клетки в строгом cel-shaded стиле -->
-    <polygon points="0,-48 64,-24 0,0 -64,-24" fill="#EAE0CE"/>
-    <polygon points="0,0 64,24 0,48 -64,24" fill="#DFD2BC"/>
-    <polygon points="-64,-24 0,0 -64,24 -128,0" fill="#2B3D5B"/>
-    <polygon points="64,-24 128,0 64,24 0,0" fill="#213049"/>
-    <polygon points="0,-48 128,0 0,48 -128,0" fill="none" stroke="#14110E" stroke-width="4" stroke-linejoin="round"/>
-    <line x1="-64" y1="-24" x2="64" y2="24" stroke="#14110E" stroke-width="3.5"/>
-    <line x1="64" y1="-24" x2="-64" y2="24" stroke="#14110E" stroke-width="3.5"/>
+  <g transform="translate(256, 256) rotate(-75)">
+    <path d="M -5 18 L -5 -65 L -14 -74 C -14 -94, 14 -94, 14 -74 L 5 -65 L 5 18 Z" fill="url(#gold_hand)" stroke="#15110E" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="0" cy="-84" r="7" fill="#0E1626" stroke="#15110E" stroke-width="3"/>
+    <path d="M 0 -94 L 0 -115" stroke="url(#gold_hand)" stroke-width="4.5" stroke-linecap="round"/>
   </g>
+  <g transform="translate(256, 256) rotate(52)">
+    <path d="M -4 20 L -4 -105 L -13 -116 C -13 -136, 13 -136, 13 -116 L 4 -105 L 4 20 Z" fill="url(#gold_hand)" stroke="#15110E" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="0" cy="-126" r="6.5" fill="#38BDF8" stroke="#15110E" stroke-width="2.5"/>
+    <path d="M 0 -136 L 0 -162" stroke="url(#gold_hand)" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <path d="M 256 256 C 295 235, 325 185, 295 145 C 265 105, 195 115, 160 160 C 120 215, 130 305, 195 350 C 270 400, 375 380, 420 300 C 460 220, 435 100, 345 55" fill="none" stroke="#38BDF8" stroke-width="3" stroke-dasharray="10 8" opacity="0.6"/>
+  <path d="M 256 256 C 215 275, 185 325, 215 365 C 245 405, 315 395, 350 350 C 390 295, 380 205, 315 160 C 240 110, 135 130, 90 210" fill="none" stroke="#C084FC" stroke-width="2.5" stroke-dasharray="8 8" opacity="0.5"/>
+  <g transform="translate(212, 260) scale(0.88)" opacity="0.42">
 
-  <!-- 5. ДУГА ПРЫЖКА ВО ВРЕМЕНИ (ОТ ДОСКИ L0 К ДОСКЕ L+1) -->
-  <path d="M 158 398 C 88 380, 68 308, 102 252" fill="none" stroke="#14110E" stroke-width="16" stroke-linecap="round"/>
-  <path d="M 158 398 C 88 380, 68 308, 102 252" fill="none" stroke="#E0B44C" stroke-width="8" stroke-linecap="round"/>
-  <polygon points="118,238 82,242 108,270" fill="#E0B44C" stroke="#14110E" stroke-width="4.5" stroke-linejoin="round"/>
+    <path d="
+      M -72 165
+      L 72 165
+      C 72 142, 56 132, 45 125
+      L 30 106
+      L 24 52
+      L 40 46
+      C 40 -35, -40 -35, -40 46
+      L -24 52
+      L -30 106
+      L -45 125
+      C -56 132, -72 142, -72 165
+      Z
+    " fill="#0284C7" stroke="#38BDF8" stroke-width="4.5" stroke-linejoin="round"/>
+    <path d="
+      M -28 46
+      L -52 15
+      C -60 2, -66 -12, -68 -25
+      C -58 -10, -50 -10, -44 -30
+      C -42 -45, -40 -60, -38 -75
+      C -30 -52, -22 -52, -14 -68
+      C -8 -80, -4 -90, 0 -96
+      C 4 -90, 8 -80, 14 -68
+      C 22 -52, 30 -52, 38 -75
+      C 40 -60, 42 -45, 44 -30
+      C 50 -10, 58 -10, 68 -25
+      C 66 -12, 60 2, 52 15
+      L 28 46
+      Z
+    " fill="#0284C7" stroke="#38BDF8" stroke-width="4.5" stroke-linejoin="round"/>
+    
+  </g>
+  <g transform="translate(300, 260) scale(0.88)" opacity="0.42">
 
-  <!-- 6. СВЕТЛЫЙ КОНЬ СТАУНТОН (НА ПЕРЕДНЕМ ПЛАНЕ НА ДОСКЕ L0) -->
-  <g transform="translate(302, 266) scale(1.88)">
-    <!-- Контактная тень -->
-    <ellipse cx="0" cy="60" rx="40" ry="11" fill="#060911" opacity="0.75"/>
-
-    <!-- Резной профиль боевого коня (2-тоновый cel-shading слоновой кости) -->
-    <path d="M -25 36 C -27 12, -19 -6, -8 -18 L -27 -11 C -34 -11, -38 -18, -34 -25 L -16 -46 L -14 -60 L -2 -51 C 18 -48, 31 -29, 29 0 C 28 16, 25 27, 27 36 Z" fill="#F7F3E8"/>
-
-    <!-- Теневая правая часть шеи и гривы -->
-    <path d="M -2 -51 C 18 -48, 31 -29, 29 0 C 28 16, 25 27, 27 36 L 6 36 C 9 14, 10 -12, -2 -34 Z" fill="#DFD2BC"/>
-
-    <!-- Резная ступенчатая грива (латунный акцент) -->
-    <path d="M 9 -43 C 23 -32, 29 -12, 25 14 L 16 14 C 19 -8, 15 -25, 4 -35 Z" fill="#D4A843"/>
-
-    <!-- Светлый блик вдоль морды и груди -->
-    <path d="M -13 -43 L -29 -23 M -9 -10 C -17 4, -20 18, -19 31" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round"/>
-
-    <!-- Выразительный глаз и ноздря -->
-    <circle cx="-13" cy="-35" r="3.4" fill="#181410"/>
-    <circle cx="-27" cy="-19" r="2.0" fill="#181410"/>
-
-    <!-- Внешний чёткий контур головы коня -->
-    <path d="M -25 36 C -27 12, -19 -6, -8 -18 L -27 -11 C -34 -11, -38 -18, -34 -25 L -16 -46 L -14 -60 L -2 -51 C 18 -48, 31 -29, 29 0 C 28 16, 25 27, 27 36 Z" fill="none" stroke="#181410" stroke-width="4.4" stroke-linejoin="round"/>
-
-    <!-- Латунное кольцо основания -->
-    <rect x="-29" y="32" width="58" height="9" rx="4.5" fill="#D4A843" stroke="#181410" stroke-width="4"/>
-    <rect x="0" y="34" width="27" height="5" fill="#A67B22"/>
-
-    <!-- Ступенчатый пьедестал Стаунтон -->
-    <path d="M -38 56 C -38 43, -29 39, -24 39 L 24 39 C 29 39, 38 43, 38 56 Z" fill="#F7F3E8"/>
-    <path d="M 0 39 L 24 39 C 29 39, 38 43, 38 56 L 0 56 Z" fill="#DFD2BC"/>
-    <path d="M -38 56 C -38 43, -29 39, -24 39 L 24 39 C 29 39, 38 43, 38 56 Z" fill="none" stroke="#181410" stroke-width="4.4" stroke-linejoin="round"/>
-    <rect x="-41" y="52" width="82" height="9" rx="4.5" fill="#C4B294" stroke="#181410" stroke-width="4.2"/>
+    <path d="
+      M -72 165
+      L 72 165
+      C 72 142, 56 132, 45 125
+      L 30 106
+      L 24 52
+      L 40 46
+      C 40 -35, -40 -35, -40 46
+      L -24 52
+      L -30 106
+      L -45 125
+      C -56 132, -72 142, -72 165
+      Z
+    " fill="#7E22CE" stroke="#C084FC" stroke-width="4.5" stroke-linejoin="round"/>
+    <path d="
+      M -28 46
+      L -52 15
+      C -60 2, -66 -12, -68 -25
+      C -58 -10, -50 -10, -44 -30
+      C -42 -45, -40 -60, -38 -75
+      C -30 -52, -22 -52, -14 -68
+      C -8 -80, -4 -90, 0 -96
+      C 4 -90, 8 -80, 14 -68
+      C 22 -52, 30 -52, 38 -75
+      C 40 -60, 42 -45, 44 -30
+      C 50 -10, 58 -10, 68 -25
+      C 66 -12, 60 2, 52 15
+      L 28 46
+      Z
+    " fill="#7E22CE" stroke="#C084FC" stroke-width="4.5" stroke-linejoin="round"/>
+    
+  </g>
+  <path d="M 124 365 C 130 190, 215 125, 385 145" fill="none" stroke="#15110E" stroke-width="9" stroke-linecap="round"/>
+  <path d="M 124 365 C 130 190, 215 125, 385 145" fill="none" stroke="#FFE066" stroke-width="5" stroke-linecap="round"/>
+  <path d="M 124 365 C 130 190, 215 125, 385 145" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+  <polygon points="392,146 370,133 375,146 370,159" fill="#FFE066" stroke="#15110E" stroke-width="2.5"/>
+  <circle cx="124" cy="365" r="11" fill="#38BDF8" stroke="#FFFFFF" stroke-width="3"/>
+  <circle cx="124" cy="365" r="4.5" fill="#0A0E18"/>
+  <circle cx="392" cy="146" r="11" fill="#FFE066" stroke="#FFFFFF" stroke-width="3"/>
+  <circle cx="392" cy="146" r="4.5" fill="#15110E"/>
+  <ellipse cx="256" cy="305" rx="142" ry="46" fill="none" stroke="#38BDF8" stroke-width="3.5" stroke-dasharray="14 10" opacity="0.8" transform="rotate(-10, 256, 305)"/>
+  <ellipse cx="256" cy="305" rx="172" ry="56" fill="none" stroke="#FFE066" stroke-width="2" stroke-dasharray="8 12" opacity="0.5" transform="rotate(-10, 256, 305)"/>
+  <g transform="translate(256, 260)">
+<ellipse cx="0" cy="168" rx="84" ry="18" fill="#04060B" opacity="0.85"/>
+<path d="M -72 165 C -72 145, -55 142, -45 140 L 45 140 C 55 142, 72 145, 72 165 Z" fill="#FAF8F3"/>
+<path d="M 0 140 L 45 140 C 55 142, 72 145, 72 165 L 0 165 Z" fill="#D5C7B0"/>
+<path d="M -72 165 C -72 145, -55 142, -45 140 L 45 140 C 55 142, 72 145, 72 165 Z" fill="none" stroke="#15110E" stroke-width="5.5" stroke-linejoin="round"/>
+<rect x="-76" y="160" width="152" height="11" rx="5.5" fill="#182234" stroke="#15110E" stroke-width="5"/>
+<rect x="-56" y="132" width="112" height="12" rx="6" fill="#FFE066" stroke="#15110E" stroke-width="5"/>
+<rect x="0" y="132" width="56" height="12" rx="0" fill="#B48220"/>
+<path d="M -44 132 C -44 116, -35 110, -30 106 L 30 106 C 35 110, 44 116, 44 132 Z" fill="#FAF8F3"/>
+<path d="M 0 106 L 30 106 C 35 110, 44 116, 44 132 L 0 132 Z" fill="#D5C7B0"/>
+<path d="M -44 132 C -44 116, -35 110, -30 106 L 30 106 C 35 110, 44 116, 44 132 Z" fill="none" stroke="#15110E" stroke-width="5.5" stroke-linejoin="round"/>
+<path d="M -30 106 L -24 52 L 24 52 L 30 106 Z" fill="#FAF8F3"/>
+<path d="M 0 52 L 24 52 L 30 106 L 0 106 Z" fill="#D5C7B0"/>
+<path d="M -30 106 L -24 52 L 24 52 L 30 106 Z" fill="none" stroke="#15110E" stroke-width="5.5" stroke-linejoin="round"/>
+<line x1="-12" y1="58" x2="-15" y2="100" stroke="#15110E" stroke-width="3" stroke-linecap="round" opacity="0.35"/>
+<line x1="0" y1="55" x2="0" y2="103" stroke="#15110E" stroke-width="3.5" stroke-linecap="round" opacity="0.45"/>
+<line x1="12" y1="58" x2="15" y2="100" stroke="#15110E" stroke-width="3" stroke-linecap="round" opacity="0.35"/>
+<rect x="-34" y="46" width="68" height="12" rx="6" fill="#FFE066" stroke="#15110E" stroke-width="5"/>
+<rect x="0" y="46" width="34" height="12" rx="0" fill="#B48220"/>
+<path d="M -40 46 C -40 -35, 40 -35, 40 46 Z" fill="#1E1B4B" stroke="#15110E" stroke-width="5.5" stroke-linejoin="round"/>
+<path d="M 0 -35 C 40 -35, 40 46, 40 46 L 0 46 Z" fill="#0F172A" stroke="none"/>
+<path d="M 0 -35 L 0 46" stroke="#D4A843" stroke-width="3" opacity="0.75"/>
+<path d="M 0 -35 C 18 -15, 24 20, 24 46" stroke="#D4A843" stroke-width="2.5" fill="none" opacity="0.6"/>
+<path d="M 0 -35 C -18 -15, -24 20, -24 46" stroke="#D4A843" stroke-width="2.5" fill="none" opacity="0.6"/>
+<path d="
+      M -28 46
+      L -52 15
+      C -60 2, -66 -12, -68 -25
+      C -58 -10, -50 -10, -44 -30
+      C -42 -45, -40 -60, -38 -75
+      C -30 -52, -22 -52, -14 -68
+      C -8 -80, -4 -90, 0 -96
+      C 4 -90, 8 -80, 14 -68
+      C 22 -52, 30 -52, 38 -75
+      C 40 -60, 42 -45, 44 -30
+      C 50 -10, 58 -10, 68 -25
+      C 66 -12, 60 2, 52 15
+      L 28 46
+      Z
+    " fill="#FAF8F3"/>
+<path d="
+      M 0 -96
+      C 4 -90, 8 -80, 14 -68
+      C 22 -52, 30 -52, 38 -75
+      C 40 -60, 42 -45, 44 -30
+      C 50 -10, 58 -10, 68 -25
+      C 66 -12, 60 2, 52 15
+      L 28 46
+      L 0 46
+      Z
+    " fill="#D5C7B0"/>
+<path d="
+      M -28 46
+      L -52 15
+      C -60 2, -66 -12, -68 -25
+      C -58 -10, -50 -10, -44 -30
+      C -42 -45, -40 -60, -38 -75
+      C -30 -52, -22 -52, -14 -68
+      C -8 -80, -4 -90, 0 -96
+      C 4 -90, 8 -80, 14 -68
+      C 22 -52, 30 -52, 38 -75
+      C 40 -60, 42 -45, 44 -30
+      C 50 -10, 58 -10, 68 -25
+      C 66 -12, 60 2, 52 15
+      L 28 46
+      Z
+    " fill="none" stroke="#15110E" stroke-width="5.5" stroke-linejoin="round"/>
+<path d="M -46 10 C -55 -5, -60 -18, -62 -22" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+<path d="M -26 40 L -34 -65" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.8"/>
+<path d="M -4 35 L -2 -85" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.9"/>
+<circle cx="-68" cy="-25" r="7.5" fill="#FFE066" stroke="#15110E" stroke-width="4"/>
+<circle cx="-66.1" cy="-23.1" r="4.9" fill="#B48220"/>
+<circle cx="-69.9" cy="-26.9" r="2.6" fill="#FFFFFF"/>
+<circle cx="-38" cy="-75" r="8.5" fill="#FFE066" stroke="#15110E" stroke-width="4"/>
+<circle cx="-35.9" cy="-72.9" r="5.5" fill="#B48220"/>
+<circle cx="-40.1" cy="-77.1" r="3.0" fill="#FFFFFF"/>
+<circle cx="0" cy="-96" r="10.0" fill="#FFE066" stroke="#15110E" stroke-width="4"/>
+<circle cx="2.5" cy="-93.5" r="6.5" fill="#B48220"/>
+<circle cx="-2.5" cy="-98.5" r="3.5" fill="#FFFFFF"/>
+<circle cx="38" cy="-75" r="8.5" fill="#FFE066" stroke="#15110E" stroke-width="4"/>
+<circle cx="40.1" cy="-72.9" r="5.5" fill="#B48220"/>
+<circle cx="35.9" cy="-77.1" r="3.0" fill="#FFFFFF"/>
+<circle cx="68" cy="-25" r="7.5" fill="#FFE066" stroke="#15110E" stroke-width="4"/>
+<circle cx="69.9" cy="-23.1" r="4.9" fill="#B48220"/>
+<circle cx="66.1" cy="-26.9" r="2.6" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(256, 312)">
+    <circle cx="0" cy="0" r="15" fill="#FFE066" stroke="#15110E" stroke-width="4"/>
+    <circle cx="0" cy="0" r="9" fill="#00E5FF" stroke="#15110E" stroke-width="2.5"/>
+    <polygon points="0,-6 2.5,-2.5 6,0 2.5,2.5 0,6 -2.5,2.5 -6,0 -2.5,-2.5" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(168, 142)">
+    <polygon points="0,-10 3.0,-3.0 10,0 3.0,3.0 0,10 -3.0,3.0 -10,0 -3.0,-3.0" fill="#FFFFFF"/>
+    <circle cx="0" cy="0" r="2.5" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(350, 135)">
+    <polygon points="0,-12 3.6,-3.6 12,0 3.6,3.6 0,12 -3.6,3.6 -12,0 -3.6,-3.6" fill="#FFE066"/>
+    <circle cx="0" cy="0" r="3.0" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(256, 82)">
+    <polygon points="0,-13 3.9,-3.9 13,0 3.9,3.9 0,13 -3.9,3.9 -13,0 -3.9,-3.9" fill="#00E5FF"/>
+    <circle cx="0" cy="0" r="3.2" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(136, 280)">
+    <polygon points="0,-8 2.4,-2.4 8,0 2.4,2.4 0,8 -2.4,2.4 -8,0 -2.4,-2.4" fill="#C084FC"/>
+    <circle cx="0" cy="0" r="2.0" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(376, 305)">
+    <polygon points="0,-9 2.7,-2.7 9,0 2.7,2.7 0,9 -2.7,2.7 -9,0 -2.7,-2.7" fill="#FFE066"/>
+    <circle cx="0" cy="0" r="2.2" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(195, 396)">
+    <polygon points="0,-7 2.1,-2.1 7,0 2.1,2.1 0,7 -2.1,2.1 -7,0 -2.1,-2.1" fill="#00E5FF"/>
+    <circle cx="0" cy="0" r="1.8" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(322, 390)">
+    <polygon points="0,-8 2.4,-2.4 8,0 2.4,2.4 0,8 -2.4,2.4 -8,0 -2.4,-2.4" fill="#FFE066"/>
+    <circle cx="0" cy="0" r="2.0" fill="#FFFFFF"/>
   </g>
 </svg>
