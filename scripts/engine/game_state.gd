@@ -31,6 +31,17 @@ const BLACK := 1
 const PIECE_LETTERS := ".pnbrqkuds"
 const VALUES := [0.0, 1.0, 3.0, 3.2, 5.0, 9.0, 0.0, 4.0, 5.0, 7.5]
 const KING_VALUE := 1000.0
+const NAMES_RU := {
+	PAWN: "пешка",
+	KNIGHT: "конь",
+	BISHOP: "слон",
+	ROOK: "ладья",
+	QUEEN: "ферзь",
+	KING: "король",
+	UNICORN: "единорог",
+	DRAGON: "дракон",
+	PRINCESS: "принцесса"
+}
 
 static var DIRS: Array = []        # DIRS[n] — направления ровно с n ненулевыми осями
 static var ALL_DIRS: Array = []

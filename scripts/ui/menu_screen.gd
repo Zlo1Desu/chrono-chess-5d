@@ -658,9 +658,25 @@ func _build_singleplayer_tab() -> Control:
 	diff_btns_box.add_child(b_hard)
 	_ai_buttons = [b_easy, b_norm, b_hard]
 
-	b_easy.pressed.connect(func(): _set_ai_level(ChessAI.EASY))
-	b_norm.pressed.connect(func(): _set_ai_level(ChessAI.NORMAL))
-	b_hard.pressed.connect(func(): _set_ai_level(ChessAI.HARD))
+	var ai_desc_lbl := Label.new()
+	ai_desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ai_desc_lbl.add_theme_font_size_override("font_size", 12)
+	ai_desc_lbl.add_theme_color_override("font_color", Color(0.56, 0.68, 0.84))
+	_ai_settings_box.add_child(ai_desc_lbl)
+
+	var update_ai_desc := func():
+		match _ai_level:
+			ChessAI.EASY:
+				ai_desc_lbl.text = "🤖 Новичок: играет позиционно, но иногда допускает тактические зевки."
+			ChessAI.NORMAL:
+				ai_desc_lbl.text = "🤖 Мастер: защищает короля на всех досках, видит подставы фигур и темпоральные удары."
+			ChessAI.HARD:
+				ai_desc_lbl.text = "🤖 Грандмастер: лучевой поиск с просчётом ответов соперника (2-ply) и поиском мата в 1 ход."
+	update_ai_desc.call()
+
+	b_easy.pressed.connect(func(): _set_ai_level(ChessAI.EASY); update_ai_desc.call())
+	b_norm.pressed.connect(func(): _set_ai_level(ChessAI.NORMAL); update_ai_desc.call())
+	b_hard.pressed.connect(func(): _set_ai_level(ChessAI.HARD); update_ai_desc.call())
 
 	_col_row = BoxContainer.new()
 	_col_row.vertical = false
@@ -1223,13 +1239,13 @@ func _build_puzzles_tab() -> Control:
 	proc_card.add_child(proc_vb)
 
 	var proc_title := Label.new()
-	proc_title.text = "Генератор задач (мат в 1 ход)"
+	proc_title.text = "🎲 Процедурный генератор задач (100% решаемые)"
 	proc_title.add_theme_font_size_override("font_size", 17)
 	proc_title.add_theme_color_override("font_color", Color(0.95, 0.96, 0.98))
 	proc_vb.add_child(proc_title)
 
 	var proc_sub := Label.new()
-	proc_sub.text = "Процедурные тактические позиции. За каждое решение начисляются кристаллы."
+	proc_sub.text = "Каждая позиция генерируется случайно (11 тактических паттернов + синтезатор позиций) и проверяется движком на мат в 1 ход."
 	proc_sub.add_theme_font_size_override("font_size", 13)
 	proc_sub.add_theme_color_override("font_color", Color(0.58, 0.66, 0.78))
 	proc_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1239,11 +1255,23 @@ func _build_puzzles_tab() -> Control:
 	diff_row.add_theme_constant_override("separation", 8)
 	proc_vb.add_child(diff_row)
 
+	var proc_diff_desc := Label.new()
+	proc_diff_desc.add_theme_font_size_override("font_size", 12)
+	proc_diff_desc.add_theme_color_override("font_color", Color(0.54, 0.78, 0.94))
+	proc_diff_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	var update_proc_desc := func():
+		match _proc_diff:
+			1: proc_diff_desc.text = "⚡ Лёгкий: мат по 8-й горизонтали, линейный мат, эполетный мат и поцелуй смерти."
+			2: proc_diff_desc.text = "⚔️ Средний: спёртый мат, арабский мат, мат Анастасии, вскрытый шах и 5D-фигуры (Принцесса, Единорог)."
+			3: proc_diff_desc.text = "🌀 Сложный: темпоральные прыжки в прошлое (T1), двойные шахи и многофигурные матовые сети."
+	update_proc_desc.call()
+
 	_proc_diff_btns.clear()
 	var diff_defs: Array = [
-		{"d": 1, "text": "Лёгкий (+50)"},
-		{"d": 2, "text": "Средний (+80)"},
-		{"d": 3, "text": "Сложный (+120)"}
+		{"d": 1, "text": "Лёгкий (+50 💎)"},
+		{"d": 2, "text": "Средний (+85 💎)"},
+		{"d": 3, "text": "Сложный (+125 💎)"}
 	]
 	for df in diff_defs:
 		var d_val: int = int(df["d"])
@@ -1253,17 +1281,20 @@ func _build_puzzles_tab() -> Control:
 		btn.pressed.connect(func():
 			_proc_diff = d_val
 			_update_proc_diff_ui()
+			update_proc_desc.call()
 			if sfx != null:
 				sfx.play("click"))
 		diff_row.add_child(btn)
 		_proc_diff_btns.append(btn)
 
-	var start_proc_btn := _action_btn("Сгенерировать задачу", func():
+	proc_vb.add_child(proc_diff_desc)
+
+	var start_proc_btn := _create_launch_btn("🎲 Сгенерировать уникальную задачу", func():
 		if sfx != null:
 			sfx.play("click")
 		var new_puz: Dictionary = Puzzles.generate_procedural_puzzle(_proc_diff)
 		start_puzzle_game.emit(new_puz))
-	start_proc_btn.custom_minimum_size = Vector2(0, 44)
+	start_proc_btn.custom_minimum_size = Vector2(0, 46)
 	proc_vb.add_child(start_proc_btn)
 
 	# 3. Ежедневные задания

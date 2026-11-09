@@ -9,11 +9,13 @@ signal move_requested(from_pos: Vector2i, to_pos: Vector2i)
 var state: MultiChessState
 var human_player: int = MultiChessState.WHITE
 var is_pass_and_play: bool = false
+var is_d20_mode: bool = false
 var locked: bool = false
 
 var selected_pos := Vector2i(-1, -1)
 var hovered_pos := Vector2i(-1, -1)
 var legal_destinations: Array = []  # Array[Vector2i]
+var hint_move: Dictionary = {}
 var animating_move: Dictionary = {}  # {"from": Vector2, "to": Vector2, "piece": int, "t": float}
 var mate_cell := Vector2i(-1, -1)
 var player_skins: Dictionary = {}
@@ -109,20 +111,28 @@ func _gui_input(event: InputEvent) -> void:
 				hovered_pos = Vector2i(-1, -1)
 				queue_redraw()
 
-	# Клик / тап
+	# Клик мышью или тап по экрану
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		var grid_pos := _screen_to_grid(event.position)
 		if not MultiChessState.is_valid_cell(grid_pos.x, grid_pos.y):
 			_clear_selection()
 			return
-
 		_handle_click(grid_pos)
+		accept_event()
+	elif event is InputEventScreenTouch and event.pressed:
+		var grid_pos := _screen_to_grid(event.position)
+		if not MultiChessState.is_valid_cell(grid_pos.x, grid_pos.y):
+			_clear_selection()
+			return
+		_handle_click(grid_pos)
+		accept_event()
 
 
 func _handle_click(pos: Vector2i) -> void:
 	# Если уже выбрана фигура и кликнули по доступной клетке для хода
 	if selected_pos.x != -1 and legal_destinations.has(pos):
 		var from_p := selected_pos
+		hint_move.clear()
 		_clear_selection()
 		move_requested.emit(from_p, pos)
 		return
@@ -327,6 +337,9 @@ func _draw() -> void:
 	_draw_army_banners(origin, cell_size)
 
 	# 5. Метки доступных ходов
+	var sel_piece := state.get_cell(selected_pos.x, selected_pos.y) if selected_pos.x != -1 else MultiChessState.EMPTY
+	var sel_type := MultiChessState.get_piece_type(sel_piece) if sel_piece != MultiChessState.EMPTY else 0
+
 	for dest in legal_destinations:
 		var dr := _grid_to_rect(dest.x, dest.y, origin, cell_size)
 		var center := dr.position + dr.size * 0.5
@@ -339,6 +352,17 @@ func _draw() -> void:
 			var ring_r := cell_size * (0.38 + pulse_sin * 0.05)
 			draw_circle(center, ring_r * 0.9, Color(1.0, 0.2, 0.2, 0.22))
 			draw_arc(center, ring_r, 0, TAU, 32, Color(1.0, 0.25, 0.25, 0.95), 2.5)
+
+	# 5.1 Подсветка тактического совета (💡 Совет)
+	if not hint_move.is_empty() and hint_move.has("fx") and hint_move.has("tx"):
+		var h_from := _grid_to_rect(int(hint_move["fx"]), int(hint_move["fy"]), origin, cell_size)
+		var h_to := _grid_to_rect(int(hint_move["tx"]), int(hint_move["ty"]), origin, cell_size)
+		var hp: float = 0.65 + pulse_sin * 0.35
+		draw_rect(h_from, Color(0.2, 0.95, 0.68, 0.32 * hp))
+		draw_rect(h_from.grow(-1.5), Color(0.25, 1.0, 0.72, 0.95 * hp), false, 2.2)
+		draw_rect(h_to, Color(0.2, 0.95, 0.68, 0.32 * hp))
+		draw_rect(h_to.grow(-1.5), Color(0.25, 1.0, 0.72, 0.95 * hp), false, 2.2)
+		draw_line(h_from.get_center(), h_to.get_center(), Color(0.25, 1.0, 0.75, 0.88 * hp), 3.0, true)
 
 	# 6. Отрисовка фигур на доске
 	var piece_inset: float = cell_size * 0.075
@@ -360,6 +384,26 @@ func _draw() -> void:
 			var p_owner := MultiChessState.get_piece_player(p)
 			var p_skin: String = player_skins.get(p_owner, "")
 			PieceArt.draw_multi_piece(self, p_type, p_owner, pr, 1.0, p_skin)
+
+	# 6.1 В режиме D20 рисуем бейджи порога пробития (DC X+) поверх целей для атаки
+	var font := ThemeDB.fallback_font
+	if is_d20_mode and sel_type > 0 and cell_size >= 18.0:
+		var badge_fs: int = clampi(int(cell_size * 0.32), 9, 14)
+		for dest in legal_destinations:
+			var target := state.get_cell(dest.x, dest.y)
+			if target != MultiChessState.EMPTY:
+				var def_type := MultiChessState.get_piece_type(target)
+				var dc: int = MultiChessAI._calc_d20_dc(sel_type, def_type)
+				var dr := _grid_to_rect(dest.x, dest.y, origin, cell_size)
+				var b_txt := "%d+" % dc
+				var b_sz := font.get_string_size(b_txt, HORIZONTAL_ALIGNMENT_CENTER, -1, badge_fs)
+				var pill_w := maxf(b_sz.x + 6.0, cell_size * 0.48)
+				var pill_h := float(badge_fs) + 4.0
+				var pill_r := Rect2(dr.position.x + dr.size.x - pill_w - 1.0, dr.position.y + 1.0, pill_w, pill_h)
+				var dc_col := Color(0.18, 0.85, 0.42, 0.92) if dc <= 8 else (Color(0.95, 0.68, 0.15, 0.94) if dc <= 12 else Color(0.92, 0.22, 0.25, 0.95))
+				draw_rect(pill_r, Color(0.05, 0.07, 0.12, 0.88))
+				draw_rect(pill_r, dc_col, false, 1.2)
+				draw_string(font, Vector2(pill_r.position.x + (pill_w - b_sz.x) * 0.5, pill_r.position.y + pill_h - 3.0), b_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, badge_fs, dc_col.lightened(0.35))
 
 	# 7. Отрисовка анимируемой фигуры
 	if not animating_move.is_empty():
@@ -389,7 +433,6 @@ func _draw() -> void:
 			draw_line(sp_pos - Vector2(0, sp_sz * 1.8), sp_pos + Vector2(0, sp_sz * 1.8), sp_col, 1.2)
 
 	# 10. Отрисовка всплывающего тактического текста
-	var font := ThemeDB.fallback_font
 	for ft in _floating_texts:
 		var k: float = ft["timer"] / ft["life"]
 		var alpha: float = clampf((1.0 - k) * 1.6, 0.0, 1.0)

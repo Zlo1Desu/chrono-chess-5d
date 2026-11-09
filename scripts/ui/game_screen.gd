@@ -31,6 +31,7 @@ var _toast: Label
 var _autofocus_btn: Button
 var _btn_undo: Button
 var _btn_reset: Button
+var _btn_hint: Button
 var _btn_submit: Button
 var _puz_restart_btn: Button
 var _puz_hint_btn: Button
@@ -186,20 +187,15 @@ func _build_hud() -> void:
 	top_row.add_child(_menu_btn)
 
 	if mode == MODE_PUZZLE:
-		var restart_btn := _button("Заново", _restart_puzzle)
+		var restart_btn := _button("Заново", func(): _restart_puzzle(true))
 		_puz_restart_btn = restart_btn
 		top_row.add_child(restart_btn)
 
-		var hint_btn := _button("Подсказка", func():
-			var hint_dlg := AcceptDialog.new()
-			hint_dlg.title = "Подсказка к задаче"
-			hint_dlg.dialog_text = str(puzzle_data.get("hint", "Ищите слабости короля соперника."))
-			add_child(hint_dlg)
-			hint_dlg.popup_centered())
+		var hint_btn := _button("💡 Подсказка", _on_puzzle_hint_pressed)
 		_puz_hint_btn = hint_btn
 		top_row.add_child(hint_btn)
 
-		var next_btn := _button("Следующая", func():
+		var next_btn := _button("🎲 Следующая", func():
 			var cur_diff: int = int(puzzle_data.get("difficulty", 1))
 			var new_puz: Dictionary = Puzzles.generate_procedural_puzzle(cur_diff)
 			load_puzzle(new_puz))
@@ -248,6 +244,10 @@ func _build_hud() -> void:
 	_btn_reset = _button("Сбросить", _on_reset)
 	_btn_reset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
+	if mode == MODE_AI or mode == MODE_LOCAL:
+		_btn_hint = _button("💡 Совет", _on_hint_pressed)
+		_btn_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
 	_btn_submit = _button("Завершить ход", _on_submit)
 	_btn_submit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
@@ -269,6 +269,8 @@ func _build_hud() -> void:
 
 	row.add_child(_btn_undo)
 	row.add_child(_btn_reset)
+	if _btn_hint != null:
+		row.add_child(_btn_hint)
 	row.add_child(_btn_submit)
 
 	_toast = Label.new()
@@ -321,6 +323,10 @@ func _on_viewport_resized() -> void:
 		_info.add_theme_font_size_override("font_size", 11)
 		_btn_undo.text = "Отмена"
 		_btn_reset.text = "Сброс"
+		if _btn_hint != null:
+			_btn_hint.text = "💡 Совет"
+			_btn_hint.custom_minimum_size = Vector2(0, 44)
+			_btn_hint.add_theme_font_size_override("font_size", 14)
 		_btn_submit.text = "Завершить"
 		for b in [_btn_undo, _btn_reset, _btn_submit]:
 			b.custom_minimum_size = Vector2(0, 44)
@@ -329,11 +335,11 @@ func _on_viewport_resized() -> void:
 			_puz_restart_btn.text = "Заново"
 			_puz_restart_btn.custom_minimum_size = Vector2(64, 42)
 		if _puz_hint_btn != null:
-			_puz_hint_btn.text = "Подск."
-			_puz_hint_btn.custom_minimum_size = Vector2(64, 42)
+			_puz_hint_btn.text = "💡 Подск."
+			_puz_hint_btn.custom_minimum_size = Vector2(72, 42)
 		if _puz_next_btn != null:
-			_puz_next_btn.text = "След."
-			_puz_next_btn.custom_minimum_size = Vector2(58, 42)
+			_puz_next_btn.text = "🎲 След."
+			_puz_next_btn.custom_minimum_size = Vector2(66, 42)
 	elif is_compact:
 		_menu_btn.text = "Меню"
 		_menu_btn.custom_minimum_size = Vector2(72, 44)
@@ -343,6 +349,10 @@ func _on_viewport_resized() -> void:
 		_info.add_theme_font_size_override("font_size", 12)
 		_btn_undo.text = "Отмена"
 		_btn_reset.text = "Сброс"
+		if _btn_hint != null:
+			_btn_hint.text = "💡 Совет"
+			_btn_hint.custom_minimum_size = Vector2(0, 46)
+			_btn_hint.add_theme_font_size_override("font_size", 14)
 		_btn_submit.text = "Завершить ход"
 		for b in [_btn_undo, _btn_reset, _btn_submit]:
 			b.custom_minimum_size = Vector2(0, 46)
@@ -351,11 +361,11 @@ func _on_viewport_resized() -> void:
 			_puz_restart_btn.text = "Заново"
 			_puz_restart_btn.custom_minimum_size = Vector2(76, 44)
 		if _puz_hint_btn != null:
-			_puz_hint_btn.text = "Подсказка"
-			_puz_hint_btn.custom_minimum_size = Vector2(90, 44)
+			_puz_hint_btn.text = "💡 Подсказка"
+			_puz_hint_btn.custom_minimum_size = Vector2(98, 44)
 		if _puz_next_btn != null:
-			_puz_next_btn.text = "Новая"
-			_puz_next_btn.custom_minimum_size = Vector2(72, 44)
+			_puz_next_btn.text = "🎲 Новая"
+			_puz_next_btn.custom_minimum_size = Vector2(80, 44)
 	elif is_medium:
 		_menu_btn.text = "Меню"
 		_menu_btn.custom_minimum_size = Vector2(100, 46)
@@ -365,6 +375,10 @@ func _on_viewport_resized() -> void:
 		_info.add_theme_font_size_override("font_size", 13)
 		_btn_undo.text = "Отмена"
 		_btn_reset.text = "Сброс"
+		if _btn_hint != null:
+			_btn_hint.text = "💡 Совет"
+			_btn_hint.custom_minimum_size = Vector2(0, 48)
+			_btn_hint.add_theme_font_size_override("font_size", 15)
 		_btn_submit.text = "Завершить ход"
 		for b in [_btn_undo, _btn_reset, _btn_submit]:
 			b.custom_minimum_size = Vector2(0, 48)
@@ -373,11 +387,11 @@ func _on_viewport_resized() -> void:
 			_puz_restart_btn.text = "Заново"
 			_puz_restart_btn.custom_minimum_size = Vector2(96, 46)
 		if _puz_hint_btn != null:
-			_puz_hint_btn.text = "Подсказка"
-			_puz_hint_btn.custom_minimum_size = Vector2(106, 46)
+			_puz_hint_btn.text = "💡 Подсказка"
+			_puz_hint_btn.custom_minimum_size = Vector2(114, 46)
 		if _puz_next_btn != null:
-			_puz_next_btn.text = "Следующая"
-			_puz_next_btn.custom_minimum_size = Vector2(100, 46)
+			_puz_next_btn.text = "🎲 Следующая"
+			_puz_next_btn.custom_minimum_size = Vector2(108, 46)
 	else:
 		_menu_btn.text = "Меню"
 		_menu_btn.custom_minimum_size = Vector2(120, 48)
@@ -387,6 +401,10 @@ func _on_viewport_resized() -> void:
 		_info.add_theme_font_size_override("font_size", 14)
 		_btn_undo.text = "Отменить"
 		_btn_reset.text = "Сбросить"
+		if _btn_hint != null:
+			_btn_hint.text = "💡 Совет"
+			_btn_hint.custom_minimum_size = Vector2(0, 48)
+			_btn_hint.add_theme_font_size_override("font_size", 15)
 		_btn_submit.text = "Завершить ход"
 		for b in [_btn_undo, _btn_reset, _btn_submit]:
 			b.custom_minimum_size = Vector2(0, 48)
@@ -395,11 +413,11 @@ func _on_viewport_resized() -> void:
 			_puz_restart_btn.text = "Заново"
 			_puz_restart_btn.custom_minimum_size = Vector2(104, 48)
 		if _puz_hint_btn != null:
-			_puz_hint_btn.text = "Подсказка"
-			_puz_hint_btn.custom_minimum_size = Vector2(116, 48)
+			_puz_hint_btn.text = "💡 Подсказка"
+			_puz_hint_btn.custom_minimum_size = Vector2(124, 48)
 		if _puz_next_btn != null:
-			_puz_next_btn.text = "Следующая"
-			_puz_next_btn.custom_minimum_size = Vector2(104, 48)
+			_puz_next_btn.text = "🎲 Следующая"
+			_puz_next_btn.custom_minimum_size = Vector2(116, 48)
 
 	_update_autofocus_btn()
 	if _opp_dc_banner != null and _top_panel != null:
@@ -499,19 +517,60 @@ func _after_state_change() -> void:
 	var human: bool = _is_human_turn() and not _busy
 	view.interactive = human
 	view.threats = state.current_threats() if human else []
+	var mand_left: int = state.mandatory_timelines().size() if human else 0
+	var sub_ready: bool = human and state.submit_error() == ""
+
 	if not _game_over:
-		var who: String = _color_name(state.turn)
-		if mode == MODE_AI:
-			who += " (вы)" if state.turn == human_color else " (ИИ думает…)"
-		elif mode == MODE_ONLINE:
-			who += " (вы)" if state.turn == human_color else " (ход соперника)"
-		var chk: String = "  — ШАХ!" if human and not view.threats.is_empty() else ""
-		_status.text = "Ходят %s%s" % [who, chk]
-	_info.text = "Ход %d · линий: %d · активных: %d" % [state.turn_number(), state.timelines.size(), _active_count()]
+		if mode == MODE_PUZZLE and not puzzle_data.is_empty():
+			var chk_puz: String = "  ·  ⚠️ ШАХ!" if human and not view.threats.is_empty() else ""
+			_status.text = "%s%s" % [str(puzzle_data.get("desc", "Найдите победный ход!")), chk_puz]
+			_info.text = "🧩 %s · Награда: 💎 +%d" % [puzzle_data.get("title", ""), int(puzzle_data.get("reward", 50))]
+		else:
+			var who: String = _color_name(state.turn)
+			if mode == MODE_AI:
+				who += " (вы)" if state.turn == human_color else " (🤖 ИИ думает…)"
+			elif mode == MODE_ONLINE:
+				who += " (вы)" if state.turn == human_color else " (ход соперника)"
+			var chk: String = "  — ⚠️ ШАХ!" if human and not view.threats.is_empty() else ""
+			_status.text = "Ходят %s%s" % [who, chk]
+
+			var mand_txt: String = ""
+			if human:
+				if sub_ready:
+					mand_txt = " · ✓ Можно завершить ход"
+				elif mand_left > 0:
+					mand_txt = " · ⚡ Обяз. досок: %d" % mand_left
+				elif not view.threats.is_empty():
+					mand_txt = " · 🛡️ Защитите короля!"
+			_info.text = "Ход %d · Линий: %d (%d актив.)%s" % [state.turn_number(), state.timelines.size(), _active_count(), mand_txt]
+
 	_btn_undo.disabled = not human or not state.can_undo()
 	_btn_reset.disabled = not human or not state.can_undo()
-	_btn_submit.disabled = not human or state.submit_error() != ""
+	if _btn_hint != null:
+		_btn_hint.disabled = not human
+	_btn_submit.disabled = not sub_ready
+	_update_submit_button_style(sub_ready)
 	view.refresh()
+
+
+func _update_submit_button_style(ready: bool) -> void:
+	if _btn_submit == null:
+		return
+	var sb := StyleBoxFlat.new()
+	if ready:
+		sb.bg_color = Color(0.11, 0.56, 0.40, 0.98)
+		sb.border_color = Color(0.32, 0.92, 0.68, 0.98)
+	else:
+		sb.bg_color = Color(0.15, 0.39, 0.92, 0.98)
+		sb.border_color = Color(0.38, 0.65, 0.98, 0.95)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	_btn_submit.add_theme_stylebox_override("normal", sb)
+	var hov: StyleBoxFlat = sb.duplicate()
+	hov.bg_color = sb.bg_color.lightened(0.12)
+	_btn_submit.add_theme_stylebox_override("hover", hov)
 
 
 func _active_count() -> int:
@@ -520,6 +579,20 @@ func _active_count() -> int:
 		if state.is_active(l):
 			n += 1
 	return n
+
+
+func _piece_rule_hint(pt: int) -> String:
+	match pt:
+		GameState.PAWN: return "шаг вперёд / взятие по диагонали и сквозь время"
+		GameState.KNIGHT: return "прыжок Г (2+1) в пространстве или времени"
+		GameState.BISHOP: return "скользит по диагоналям (2 оси)"
+		GameState.ROOK: return "скользит по прямым и сквозь время (1 ось)"
+		GameState.QUEEN: return "скользит по любым осям (от 1 до 4 измерений)"
+		GameState.KING: return "шаг на 1 клетку в любом измерении"
+		GameState.UNICORN: return "5D-фигура: бьёт только по триагоналям (3 оси сразу)"
+		GameState.DRAGON: return "5D-фигура: бьёт по тетрагоналям (4 оси сразу)"
+		GameState.PRINCESS: return "5D-фигура: сочетает ходы Слона и Ладьи"
+	return ""
 
 
 # ---------------------------------------------------------------- ходы игрока
@@ -540,18 +613,80 @@ func _on_square_tapped(v: Vector4i) -> void:
 	if v.x >= 0 and state.can_select(v):
 		view.selected = v
 		view.targets = []
+		var temporal_cnt: int = 0
 		for m in state.moves_from(v):
-			view.targets.append(m["t"])
+			var tv: Vector4i = m["t"]
+			view.targets.append(tv)
+			if tv.z != v.z or tv.w != v.w:
+				temporal_cnt += 1
+		var p_sel: int = state.piece_at(v)
+		var pt: int = GameState.piece_type(p_sel)
+		var p_name: String = str(GameState.NAMES_RU.get(pt, "Фигура")).capitalize()
+		var sq_name: String = "%s%d" % [String.chr(97 + v.x), v.y + 1]
+		var time_tag: String = (" (из них %d в прошлое/иные линии)" % temporal_cnt) if temporal_cnt > 0 else ""
+		_info.text = "🔹 %s [%s] — %s · Ходов: %d%s" % [p_name, sq_name, _piece_rule_hint(pt), view.targets.size(), time_tag]
 		_play("click")
 		view.refresh()
 	else:
 		_clear_selection()
+		_after_state_change()
 
 
 func _clear_selection() -> void:
 	view.selected = Vector4i(-1, -1, 0, 0)
 	view.targets = []
 	view.refresh()
+
+
+func _on_hint_pressed() -> void:
+	if not _is_human_turn() or _busy:
+		return
+	var h: Dictionary = ChessAI.get_hint(state)
+	if h.is_empty() or not h.has("move"):
+		toast("💡 Нет доступных ходов на текущих досках", Color(1.0, 0.75, 0.4))
+		return
+	var m: Dictionary = h["move"]
+	var reason: String = str(h.get("reason", "Рекомендуемый ход"))
+	var f: Vector4i = m["f"]
+	var t: Vector4i = m["t"]
+	view.hint_move = {"f": f, "t": t}
+	view.selected = f
+	view.targets = []
+	for mv in state.moves_from(f):
+		view.targets.append(mv["t"])
+	view.focus_board(f.w, f.z, true)
+	view.refresh()
+	_play("click")
+	var f_sq := "%s%d" % [String.chr(97 + f.x), f.y + 1]
+	var t_sq := "%s%d" % [String.chr(97 + t.x), t.y + 1]
+	var t_tag := (" (в T%d)" % (floori(t.z / 2.0) + 1)) if (f.z != t.z or f.w != t.w) else ""
+	toast("💡 Совет: %s → %s%s · %s" % [f_sq, t_sq, t_tag, reason], Color(0.35, 1.0, 0.78))
+
+
+func _on_puzzle_hint_pressed() -> void:
+	if puzzle_data.is_empty():
+		return
+	var hint_txt: String = str(puzzle_data.get("hint", "Ищите уязвимость короля соперника!"))
+	var tgt: Dictionary = puzzle_data.get("target_move", {})
+	if not tgt.is_empty():
+		var fx: int = int(tgt.get("fx", 0))
+		var fy: int = int(tgt.get("fy", 0))
+		var tx: int = int(tgt.get("tx", 0))
+		var ty: int = int(tgt.get("ty", 0))
+		var fz: int = int(tgt.get("fz", state.end_t(0)))
+		var tz: int = int(tgt.get("tz", fz))
+		var fv := Vector4i(fx, fy, fz, 0)
+		var tv := Vector4i(tx, ty, tz, 0)
+		view.hint_move = {"f": fv, "t": tv}
+		if state.can_select(fv):
+			view.selected = fv
+			view.targets = []
+			for mv in state.moves_from(fv):
+				view.targets.append(mv["t"])
+		view.focus_board(0, fz, true)
+		view.refresh()
+	_play("click")
+	toast("💡 Подсказка: " + hint_txt, Color(0.35, 0.98, 0.78))
 
 
 ## Пешка `p`, приходящая на клетку `to`, достигает последней горизонтали.
@@ -563,11 +698,17 @@ func _is_promotion(p: int, to: Vector4i) -> bool:
 
 
 func _do_move(m: Dictionary) -> void:
+	view.hint_move = {}
 	_clear_selection()
 	_busy = true
 	await _animate_and_apply(m)
 	_busy = false
 	_after_state_change()
+	# В режиме задач автоматически проверяем решение, когда ход на обязательной доске завершён!
+	if mode == MODE_PUZZLE and state.submit_error() == "":
+		await get_tree().create_timer(0.18).timeout
+		if is_inside_tree() and not _game_over and state.submit_error() == "":
+			_on_submit()
 
 
 ## Анимирует перемещение со старой доски на созданную новую доску и проигрывает подходящий звук.
@@ -728,36 +869,52 @@ func _on_puzzle_solved() -> void:
 	var rew: int = int(puzzle_data.get("reward", 50))
 	Profile.mark_puzzle_solved(str(puzzle_data.get("id", "")), rew)
 
-	var msg: String = "Великолепный ход! Вы успешно решили задачу «%s».\n\nНаграда: 💎 +%d Хроно-кристаллов!" % [str(puzzle_data.get("title", "")), rew]
+	var msg: String = "Великолепный ход! Вы решили задачу «%s».\n\n💎 Награда: +%d Хроно-кристаллов!" % [str(puzzle_data.get("title", "")), rew]
 	if mate_details.get("has_mate", false):
 		var k_sq: String = str(mate_details.get("king_sq", ""))
 		var a_sq: String = str(mate_details.get("attacker_sq", ""))
-		msg += "\n\n📍 Шах и мат поставлен на поле: %s" % k_sq
+		msg += "\n📍 Король под матом на поле: %s" % k_sq
 		if a_sq != "":
 			msg += "\n⚔ Решающая атака с поля: %s" % a_sq
 
-	var dlg := AcceptDialog.new()
-	dlg.title = "🎉 Головоломка решена!"
-	dlg.dialog_text = msg
-	dlg.ok_button_text = "В меню"
-	dlg.confirmed.connect(func(): exit_requested.emit())
-	var next_btn := dlg.add_button("🎲 Следующая задача", false, "next_puzzle")
-	next_btn.pressed.connect(func():
-		dlg.queue_free()
+	var modal: Array = _make_modal(12, 0.72)
+	var overlay: Control = modal[0]
+	var vb: VBoxContainer = modal[1]
+	_modal_title(vb, "🎉 Головоломка решена!", 22)
+
+	var body := Label.new()
+	body.text = msg
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.custom_minimum_size = Vector2(300, 0)
+	body.add_theme_font_size_override("font_size", 15)
+	body.add_theme_color_override("font_color", Color(0.88, 0.94, 1.0))
+	vb.add_child(body)
+
+	var next_btn := _button("🎲 Следующая задача", func():
+		overlay.queue_free()
 		var cur_diff: int = int(puzzle_data.get("difficulty", 1))
 		var new_puz: Dictionary = Puzzles.generate_procedural_puzzle(cur_diff)
 		load_puzzle(new_puz))
-	add_child(dlg)
-	dlg.popup_centered()
+	var inspect_btn := _button("👁 Осмотреть доску", func():
+		_play("click")
+		overlay.queue_free())
+	var menu_btn := _button("🏠 В меню", func():
+		overlay.queue_free()
+		exit_requested.emit())
+
+	for b in [next_btn, inspect_btn, menu_btn]:
+		b.custom_minimum_size = Vector2(260, 46)
+		vb.add_child(b)
 
 
 func load_puzzle(p_puzzle: Dictionary) -> void:
 	puzzle_data = p_puzzle
-	_restart_puzzle()
+	_restart_puzzle(false)
 	toast("🎲 Загружена задача: «%s»" % str(puzzle_data.get("title", "")), Color(0.4, 0.9, 1.0))
 
 
-func _restart_puzzle() -> void:
+func _restart_puzzle(show_toast: bool = true) -> void:
 	if mode != MODE_PUZZLE or puzzle_data.is_empty():
 		return
 	_game_over = false
@@ -770,6 +927,7 @@ func _restart_puzzle() -> void:
 	view.state = state
 	view.selected = Vector4i(-1, -1, 0, 0)
 	view.targets = []
+	view.hint_move = {}
 	view.mate_info = {}
 	view.threats = []
 	view.interactive = true
@@ -777,15 +935,17 @@ func _restart_puzzle() -> void:
 	view.focus_present(false)
 	_info.text = "🧩 %s · Награда: 💎 +%d" % [puzzle_data.get("title", ""), int(puzzle_data.get("reward", 50))]
 	_status.text = str(puzzle_data.get("desc", "Найдите победный ход!"))
-	toast("🔄 Позиция сброшена", Color(0.4, 0.85, 1.0))
-	if sfx != null:
-		sfx.play("click")
+	if show_toast:
+		toast("🔄 Позиция сброшена", Color(0.4, 0.85, 1.0))
+		if sfx != null:
+			sfx.play("click")
 
 
 func _on_puzzle_failed() -> void:
-	toast("❌ Неверный ход! Позиция сброшена. Попробуйте другой вариант или возьмите подсказку.", Color(1.0, 0.4, 0.4))
+	var reason: String = Puzzles.explain_puzzle_failure(state)
 	_play("error")
-	_restart_puzzle()
+	_restart_puzzle(false)
+	toast(reason + " (позиция возвращена)", Color(1.0, 0.42, 0.42))
 
 
 func _focus_on_threat() -> void:
@@ -909,14 +1069,56 @@ func _end_with(text: String) -> void:
 
 	_play("win")
 	_after_state_change()
-	_status.text = text
-	var dlg := AcceptDialog.new()
-	dlg.title = "Партия окончена"
-	dlg.dialog_text = text
-	dlg.ok_button_text = "В меню"
-	dlg.confirmed.connect(func(): exit_requested.emit())
-	add_child(dlg)
-	dlg.popup_centered()
+	_status.text = text.split("\n")[0]
+
+	var modal: Array = _make_modal(12, 0.72)
+	var overlay: Control = modal[0]
+	var vb: VBoxContainer = modal[1]
+	_modal_title(vb, "🏁 Партия окончена", 22)
+
+	var body := Label.new()
+	body.text = text
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.custom_minimum_size = Vector2(300, 0)
+	body.add_theme_font_size_override("font_size", 15)
+	body.add_theme_color_override("font_color", Color(0.88, 0.94, 1.0))
+	vb.add_child(body)
+
+	if mode == MODE_AI or mode == MODE_LOCAL:
+		var rematch_btn := _button("🔄 Сыграть снова", func():
+			overlay.queue_free()
+			_restart_match())
+		rematch_btn.custom_minimum_size = Vector2(260, 46)
+		vb.add_child(rematch_btn)
+
+	var inspect_btn := _button("👁 Осмотреть доску", func():
+		_play("click")
+		overlay.queue_free())
+	inspect_btn.custom_minimum_size = Vector2(260, 46)
+	vb.add_child(inspect_btn)
+
+	var menu_btn := _button("🏠 В меню", func():
+		overlay.queue_free()
+		exit_requested.emit())
+	menu_btn.custom_minimum_size = Vector2(260, 46)
+	vb.add_child(menu_btn)
+
+
+func _restart_match() -> void:
+	_game_over = false
+	_busy = false
+	state = Variants.create(variant_id)
+	view.state = state
+	view.selected = Vector4i(-1, -1, 0, 0)
+	view.targets = []
+	view.hint_move = {}
+	view.mate_info = {}
+	view.threats = []
+	view.interactive = true
+	view.focus_present(true)
+	_after_state_change()
+	_maybe_ai_turn()
 
 
 # ---------------------------------------------------------------- ИИ и сеть

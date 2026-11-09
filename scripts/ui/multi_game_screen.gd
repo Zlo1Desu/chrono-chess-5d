@@ -32,6 +32,7 @@ var _turn_badge: Button
 var _status_row: HBoxContainer
 var _player_cards: Array = []
 var _net_badge_btn: Button = null
+var _hint_btn: Button = null
 var player_skins: Dictionary = {}
 
 
@@ -99,6 +100,7 @@ func _ready() -> void:
 	view.state = state
 	view.human_player = human_player
 	view.is_pass_and_play = is_pass_and_play
+	view.is_d20_mode = is_d20_mode
 	view.player_skins = player_skins
 	view.move_requested.connect(_on_move_requested)
 	add_child(view)
@@ -135,7 +137,7 @@ func _on_viewport_resized() -> void:
 		_bot_panel.add_theme_stylebox_override("panel", bot_sb)
 
 	if _mode_title != null:
-		var prefix := "D20 · " if is_d20_mode else ""
+		var prefix := "🎲 D20 · " if is_d20_mode else ""
 		match game_mode:
 			MultiChessState.MODE_1V1V1:
 				_mode_title.text = (prefix + "1×1×1") if is_compact else (prefix + "1×1×1 (3 игрока)")
@@ -144,8 +146,12 @@ func _on_viewport_resized() -> void:
 			MultiChessState.MODE_1V1V1V1:
 				_mode_title.text = (prefix + "1×1×1×1") if is_compact else (prefix + "1×1×1×1 (4 игрока)")
 
+	if _hint_btn != null:
+		_hint_btn.text = "💡" if is_compact else "💡 Совет"
+		_hint_btn.custom_minimum_size.x = 44 if is_compact else 92
+
 	if _turn_badge != null:
-		_turn_badge.custom_minimum_size.x = 140 if is_compact else 210
+		_turn_badge.custom_minimum_size.x = 135 if is_compact else 205
 
 	if view != null:
 		view.queue_redraw()
@@ -201,6 +207,15 @@ func _build_ui() -> void:
 
 	top_hb.add_child(Control.new())
 	top_hb.get_child(top_hb.get_child_count() - 1).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	if net == null:
+		_hint_btn = Button.new()
+		_hint_btn.text = "💡 Совет"
+		_hint_btn.custom_minimum_size = Vector2(92, 38)
+		_hint_btn.focus_mode = Control.FOCUS_NONE
+		_hint_btn.add_theme_stylebox_override("normal", m_sb)
+		_hint_btn.pressed.connect(_on_hint_pressed)
+		top_hb.add_child(_hint_btn)
 
 	_turn_badge = Button.new()
 	_turn_badge.custom_minimum_size = Vector2(210, 40)
@@ -703,7 +718,7 @@ func _check_ai_turn() -> void:
 		view.locked = false
 		return
 
-	var m := ai.choose_move(state)
+	var m := ai.choose_move(state, is_d20_mode)
 	if m.is_empty():
 		# Нет ходов — игрок выбывает
 		state.eliminate_player(cur)
@@ -723,6 +738,27 @@ func _check_ai_turn() -> void:
 	_apply_move_animated(m, net != null)
 
 
+func _on_hint_pressed() -> void:
+	if _busy or _game_over:
+		return
+	var cur := state.turn
+	if not is_pass_and_play and cur != human_player:
+		return
+	var h := MultiChessAI.get_hint(state, is_d20_mode)
+	if h.is_empty() or not h.has("move"):
+		return
+	var m: Dictionary = h["move"]
+	var reason: String = str(h.get("reason", "Рекомендуемый ход"))
+	view.hint_move = m
+	view.selected_pos = Vector2i(int(m["fx"]), int(m["fy"]))
+	view._update_legal_destinations()
+	view.queue_redraw()
+	if sfx != null:
+		sfx.play("click")
+	var dst_rect := view.get_cell_screen_rect(int(m["tx"]), int(m["ty"]))
+	view.add_floating_text("💡 " + reason, dst_rect.get_center(), Color(0.3, 1.0, 0.78), 16)
+
+
 func _on_player_resigned(r_color: int, _p_name: String) -> void:
 	if state.eliminated_players.has(r_color):
 		return
@@ -739,18 +775,75 @@ func _on_player_resigned(r_color: int, _p_name: String) -> void:
 		_check_ai_turn()
 
 
+func _make_modal(title_text: String, body_text: String) -> Array:
+	var overlay := Control.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(overlay)
+
+	var bg := ColorRect.new()
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.02, 0.04, 0.08, 0.76)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.add_child(bg)
+
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _panel_style(18))
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	overlay.add_child(panel)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 12)
+	panel.add_child(vb)
+
+	var t_lbl := Label.new()
+	t_lbl.text = title_text
+	t_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t_lbl.add_theme_font_size_override("font_size", 20)
+	t_lbl.add_theme_color_override("font_color", Color(0.95, 0.97, 1.0))
+	vb.add_child(t_lbl)
+
+	if body_text != "":
+		var b_lbl := Label.new()
+		b_lbl.text = body_text
+		b_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b_lbl.custom_minimum_size = Vector2(280, 0)
+		b_lbl.add_theme_font_size_override("font_size", 15)
+		b_lbl.add_theme_color_override("font_color", Color(0.84, 0.90, 0.98))
+		vb.add_child(b_lbl)
+
+	return [overlay, vb]
+
+
+func _modal_btn(text: String, cb: Callable) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(250, 44)
+	b.focus_mode = Control.FOCUS_NONE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.10, 0.15, 0.26, 0.96)
+	sb.border_color = Color(0.24, 0.38, 0.62, 0.9)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	b.add_theme_stylebox_override("normal", sb)
+	var hov: StyleBoxFlat = sb.duplicate()
+	hov.bg_color = sb.bg_color.lightened(0.12)
+	b.add_theme_stylebox_override("hover", hov)
+	b.pressed.connect(cb)
+	return b
+
+
 func _on_net_disconnected(reason: String) -> void:
 	if _game_over:
 		return
 	_game_over = true
 	view.locked = true
-	var dlg := AcceptDialog.new()
-	dlg.title = "Связь потеряна"
-	dlg.dialog_text = "Связь с сервером прервана:\n%s" % reason
-	dlg.ok_button_text = "В главное меню"
-	dlg.confirmed.connect(func(): exit_requested.emit())
-	add_child(dlg)
-	dlg.popup_centered()
+	var m := _make_modal("📡 Связь потеряна", "Связь с сервером прервана:\n%s" % reason)
+	var vb: VBoxContainer = m[1]
+	vb.add_child(_modal_btn("🏠 В главное меню", func(): exit_requested.emit()))
 
 
 func _finish_game() -> void:
@@ -782,31 +875,56 @@ func _finish_game() -> void:
 			var sq_str := "%s%d" % [cols[tx] if tx < cols.size() else str(tx), ty + 1]
 			text += "\n\n📍 Решающий ход на поле: %s" % sq_str
 
-	var dlg := AcceptDialog.new()
-	dlg.title = "Партия завершена"
-	dlg.dialog_text = text
-	dlg.ok_button_text = "В главное меню"
-	dlg.confirmed.connect(func(): exit_requested.emit())
-	add_child(dlg)
-	dlg.popup_centered()
+	var m := _make_modal("🏆 Партия завершена", text)
+	var overlay: Control = m[0]
+	var vb: VBoxContainer = m[1]
+
+	if net == null:
+		vb.add_child(_modal_btn("🔄 Сыграть снова", func():
+			overlay.queue_free()
+			_restart_multi_match()))
+	vb.add_child(_modal_btn("👁 Осмотреть доску", func():
+		overlay.queue_free()))
+	vb.add_child(_modal_btn("🏠 В главное меню", func():
+		overlay.queue_free()
+		exit_requested.emit()))
+
+
+func _restart_multi_match() -> void:
+	_game_over = false
+	_busy = false
+	state.setup(game_mode)
+	view.state = state
+	view.locked = false
+	view.mate_cell = Vector2i(-1, -1)
+	view.hint_move.clear()
+	view._clear_selection()
+	_update_hud()
+	_check_ai_turn()
 
 
 func _on_menu_pressed() -> void:
-	var dlg := ConfirmationDialog.new()
-	dlg.title = "Меню партии"
-	dlg.dialog_text = "Вы хотите сдаться и выйти в главное меню?"
-	dlg.ok_button_text = "Выйти в меню"
-	dlg.cancel_button_text = "Продолжить"
-	dlg.confirmed.connect(func():
+	var m := _make_modal("⏸ Меню партии", "Управление текущей партией")
+	var overlay: Control = m[0]
+	var vb: VBoxContainer = m[1]
+
+	vb.add_child(_modal_btn("▶ Продолжить игру", func():
+		overlay.queue_free()))
+
+	if net == null:
+		vb.add_child(_modal_btn("🔄 Начать заново", func():
+			overlay.queue_free()
+			_restart_multi_match()))
+
+	vb.add_child(_modal_btn("🚪 Выйти в главное меню", func():
+		overlay.queue_free()
 		if net != null:
 			if net.is_online_mode:
 				net.online_resign()
 				net.online_leave_room()
 			else:
 				net.close()
-		exit_requested.emit())
-	add_child(dlg)
-	dlg.popup_centered()
+		exit_requested.emit()))
 
 
 func _panel_style(margin: int = 12) -> StyleBoxFlat:

@@ -30,6 +30,7 @@ var interactive: bool = true
 var flip: bool = false
 var threats: Array = []
 var mate_info: Dictionary = {}
+var hint_move: Dictionary = {}
 var is_animating: bool = false
 var player_skins: Dictionary = {}
 
@@ -558,11 +559,35 @@ func _draw() -> void:
 					continue
 				var is_mb: bool = not mate_info.is_empty() and int(mate_info.get("board_l", 99999)) == l and int(mate_info.get("board_t", -99999)) == t
 				var label: String = "T%d%s" % [floori(t / 2.0) + 1, "" if posmod(t, 2) == 0 else "b"]
+				var lbl_col: Color = Color(0.8, 0.86, 1.0, 0.78)
 				if is_mb:
-					label += " [👑 МАТ!]"
-				var lbl_col: Color = Color(1.0, 0.85, 0.3, 0.95) if is_mb else Color(0.8, 0.86, 1.0, 0.75)
-				draw_string(_font, o + Vector2(2.0, -pad - 4.0), label,
-						HORIZONTAL_ALIGNMENT_LEFT, -1, int(fs * 0.72), lbl_col)
+					label += "  [👑 МАТ!]"
+					lbl_col = Color(1.0, 0.85, 0.3, 0.98)
+				elif interactive and state.is_mandatory_board(l, t):
+					label += "  ⚡ ОБЯЗ. ХОД"
+					lbl_col = COL_MANDATORY
+				elif interactive and state.is_playable_board(l, t):
+					label += "  ✦ ДОСТУПНА"
+					lbl_col = COL_OPTIONAL
+				draw_string(_font, o + Vector2(2.0, -pad - 5.0), label,
+						HORIZONTAL_ALIGNMENT_LEFT, -1, int(fs * 0.68), lbl_col)
+
+	# Направляющие квантовые лучи к темпоральным целям выбранной фигуры
+	if selected.x >= 0 and not targets.is_empty():
+		var sel_c: Vector2 = square_rect(selected).get_center()
+		var guide_pulse: float = sin(_anim_time * 5.0) * 0.2 + 0.65
+		for tgt in targets:
+			var tv: Vector4i = tgt
+			if tv.z != selected.z or tv.w != selected.w:
+				var dst_c: Vector2 = square_rect(tv).get_center()
+				_draw_curve(sel_c, dst_c, Color(0.88, 0.45, 1.0, 0.55 * guide_pulse), SQ * 0.08)
+
+	# Стрелка тактической подсказки (💡 Совет)
+	if not hint_move.is_empty() and hint_move.has("f") and hint_move.has("t"):
+		var hf: Vector4i = hint_move["f"]
+		var ht: Vector4i = hint_move["t"]
+		var h_pulse: float = sin(_anim_time * 6.0) * 0.2 + 0.8
+		_draw_arrow(square_rect(hf).get_center(), square_rect(ht).get_center(), Color(0.25, 0.98, 0.72, 0.95 * h_pulse))
 
 	# Стрелки ходов (последний ход соперника и текущий ход)
 	for m in recent:
@@ -668,6 +693,13 @@ func _draw_board(l: int, t: int, active: bool, last: Dictionary, threatened_king
 			if v == selected:
 				draw_rect(r, COL_SELECT)
 				_draw_reticle(r, Color(0.2, 0.9, 1.0))
+			elif not hint_move.is_empty():
+				var hf: Vector4i = hint_move.get("f", Vector4i(-1, -1, -1, -1))
+				var ht: Vector4i = hint_move.get("t", Vector4i(-1, -1, -1, -1))
+				if v == hf or v == ht:
+					var hp: float = sin(_anim_time * 6.5) * 0.25 + 0.75
+					draw_rect(r, Color(0.2, 0.95, 0.68, 0.36 * hp))
+					_draw_reticle(r, Color(0.25, 1.0, 0.72, 0.95 * hp), 2.5)
 
 			# Отрисовка фигуры
 			var p: int = board[y * state.w + x]
