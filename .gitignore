@@ -10,6 +10,8 @@
 *.aab
 *.exe
 *.pck
+*.ipa
+build/
 
 # Keystores & sensitive credentials
 *.keystore
