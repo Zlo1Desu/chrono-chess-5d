@@ -56,7 +56,7 @@ jobs:
           echo "Found compiled app at: $APP_PATH"
           mkdir -p Payload
           cp -r "$APP_PATH" Payload/
-          zip -qr ../../chrono-chess-5d-v1.6-unsigned.ipa Payload
+          zip -qr ../../chrono-chess-5d-v1.8-unsigned.ipa Payload
 
           echo "Packaging complete Xcode project..."
           cd ../..
@@ -66,7 +66,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: chrono-chess-5d-ios-ipa
-          path: chrono-chess-5d-v1.6-unsigned.ipa
+          path: chrono-chess-5d-v1.8-unsigned.ipa
 
       - name: Upload Xcode Project Artifact
         uses: actions/upload-artifact@v4
@@ -79,7 +79,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            chrono-chess-5d-v1.6-unsigned.ipa
+            chrono-chess-5d-v1.8-unsigned.ipa
             chrono-chess-5d-xcode-project.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
