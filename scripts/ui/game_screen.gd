@@ -134,6 +134,8 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	if _ai_thread != null and _ai_thread.is_started():
+		_ai_thread.wait_to_finish()
 	if get_viewport() != null and get_viewport().size_changed.is_connected(_on_viewport_resized):
 		get_viewport().size_changed.disconnect(_on_viewport_resized)
 	if net != null:
@@ -1283,11 +1285,6 @@ func _maybe_ai_turn() -> void:
 		_finish("checkmate" if state.in_check() else "stalemate")
 		return
 	await _play_remote_moves(moves)
-
-
-func _exit_tree() -> void:
-	if _ai_thread != null and _ai_thread.is_started():
-		_ai_thread.wait_to_finish()
 
 
 ## Проигрывает чужой ход (ИИ или соперника по сети) с анимацией и завершает его.
