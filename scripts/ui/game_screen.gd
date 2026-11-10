@@ -24,7 +24,6 @@ var view: MultiverseView
 var _top_panel: PanelContainer
 var _bottom_panel: PanelContainer
 var _menu_btn: Button
-var _present_btn: Button
 var _status: Label
 var _info: Label
 var _toast: Label
@@ -233,14 +232,8 @@ func _build_hud() -> void:
 	_info.add_theme_color_override("font_color", Color(0.58, 0.66, 0.78))
 	vb.add_child(_info)
 
-	_autofocus_btn = _button("Слежка: ВКЛ", _toggle_autofocus)
+	_autofocus_btn = _button("🟢 Авто", _toggle_autofocus)
 	top_row.add_child(_autofocus_btn)
-
-	_present_btn = _button("К настоящему", func():
-		auto_follow_present = true
-		_update_autofocus_btn()
-		view.focus_present(true))
-	top_row.add_child(_present_btn)
 
 	# Постоянная интерактивная миникарта мультивселенной
 	_minimap = TimelineMinimap.new()
@@ -343,8 +336,6 @@ func _on_viewport_resized() -> void:
 	if is_phone_portrait:
 		_menu_btn.text = "Меню"
 		_menu_btn.custom_minimum_size = Vector2(62, 42)
-		_present_btn.text = "Наст."
-		_present_btn.custom_minimum_size = Vector2(58, 42)
 		_status.add_theme_font_size_override("font_size", 14)
 		_info.add_theme_font_size_override("font_size", 11)
 		_btn_undo.text = "Отмена"
@@ -369,8 +360,6 @@ func _on_viewport_resized() -> void:
 	elif is_compact:
 		_menu_btn.text = "Меню"
 		_menu_btn.custom_minimum_size = Vector2(72, 44)
-		_present_btn.text = "Настоящее"
-		_present_btn.custom_minimum_size = Vector2(96, 44)
 		_status.add_theme_font_size_override("font_size", 16)
 		_info.add_theme_font_size_override("font_size", 12)
 		_btn_undo.text = "Отмена"
@@ -395,8 +384,6 @@ func _on_viewport_resized() -> void:
 	elif is_medium:
 		_menu_btn.text = "Меню"
 		_menu_btn.custom_minimum_size = Vector2(100, 46)
-		_present_btn.text = "Настоящее"
-		_present_btn.custom_minimum_size = Vector2(116, 46)
 		_status.add_theme_font_size_override("font_size", 18)
 		_info.add_theme_font_size_override("font_size", 13)
 		_btn_undo.text = "Отмена"
@@ -421,8 +408,6 @@ func _on_viewport_resized() -> void:
 	else:
 		_menu_btn.text = "Меню"
 		_menu_btn.custom_minimum_size = Vector2(120, 48)
-		_present_btn.text = "К настоящему"
-		_present_btn.custom_minimum_size = Vector2(140, 48)
 		_status.add_theme_font_size_override("font_size", 20)
 		_info.add_theme_font_size_override("font_size", 14)
 		_btn_undo.text = "Отменить"
@@ -1072,11 +1057,20 @@ func _focus_on_threat() -> void:
 
 
 func _toggle_autofocus() -> void:
-	auto_follow_present = not auto_follow_present
-	_update_autofocus_btn()
 	_play("click")
-	if auto_follow_present:
+	# Если автослежка уже включена И камера уже смотрит на Настоящее —
+	# тогда переключаем в ручной режим свободного обзора.
+	if auto_follow_present and view.is_camera_at_present():
+		auto_follow_present = false
+		_update_autofocus_btn()
+		toast("Камера: Ручной обзор")
+	else:
+		# Во всех остальных случаях (слежка была ВЫКЛ или камера была где-то в прошлом):
+		# С ПЕРВОГО ЖЕ КЛИКА мгновенно центрируем на настоящем и активируем автослежку!
+		auto_follow_present = true
+		_update_autofocus_btn()
 		view.focus_present(true)
+		toast("Камера: Автослежка (Настоящее)")
 
 
 func _update_autofocus_btn() -> void:
@@ -1084,14 +1078,25 @@ func _update_autofocus_btn() -> void:
 		return
 	var w: float = get_viewport_rect().size.x
 	if w < 720.0:
-		_autofocus_btn.text = "Авто" if auto_follow_present else "Ручн."
-		_autofocus_btn.custom_minimum_size = Vector2(54, 42)
+		_autofocus_btn.text = "🟢 Авто" if auto_follow_present else "⚪ Авто"
+		_autofocus_btn.custom_minimum_size = Vector2(76, 42)
 	elif w < 960.0:
-		_autofocus_btn.text = "Авто: ВКЛ" if auto_follow_present else "Авто: ВЫКЛ"
-		_autofocus_btn.custom_minimum_size = Vector2(100, 46)
+		_autofocus_btn.text = "🟢 Авто: ВКЛ" if auto_follow_present else "⚪ Авто: ВЫКЛ"
+		_autofocus_btn.custom_minimum_size = Vector2(106, 44)
 	else:
-		_autofocus_btn.text = "Слежка: ВКЛ" if auto_follow_present else "Слежка: ВЫКЛ"
-		_autofocus_btn.custom_minimum_size = Vector2(130, 48)
+		_autofocus_btn.text = "🟢 Автослежка: ВКЛ" if auto_follow_present else "⚪ Автослежка: ВЫКЛ"
+		_autofocus_btn.custom_minimum_size = Vector2(150, 46)
+
+	var sb: StyleBoxFlat = _autofocus_btn.get_theme_stylebox("normal").duplicate()
+	if auto_follow_present:
+		sb.bg_color = Color(0.08, 0.20, 0.32, 0.95)
+		sb.border_color = Color(0.25, 0.82, 0.95, 0.95)
+		_autofocus_btn.add_theme_color_override("font_color", Color(0.35, 0.95, 1.0))
+	else:
+		sb.bg_color = Color(0.09, 0.13, 0.22, 0.94)
+		sb.border_color = Color(0.18, 0.25, 0.38, 0.85)
+		_autofocus_btn.add_theme_color_override("font_color", Color(0.72, 0.78, 0.86))
+	_autofocus_btn.add_theme_stylebox_override("normal", sb)
 
 
 ## Общая обработка после того, как любая сторона (игрок, ИИ или соперник по сети)

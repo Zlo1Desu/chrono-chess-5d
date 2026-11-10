@@ -143,6 +143,10 @@ func _process(delta: float) -> void:
 		_pan_velocity *= pow(0.88, delta * 60.0)
 		camera_transformed.emit()
 
+	# Синхронизация миникарты в реальном времени при плавной анимации камеры
+	if _cam_tween != null and _cam_tween.is_running():
+		camera_transformed.emit()
+
 	queue_redraw()
 
 
@@ -318,15 +322,37 @@ func screen_to_world(p: Vector2) -> Vector2:
 
 
 func center_on(world: Vector2, smooth: bool = false) -> void:
+	_pan_velocity = Vector2.ZERO
 	var target_offset: Vector2 = size / 2.0 - world * zoom
 	if smooth and is_inside_tree():
 		if _cam_tween:
 			_cam_tween.kill()
 		_cam_tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		_cam_tween.tween_property(self, "offset", target_offset, 0.45)
+		_cam_tween.tween_property(self, "offset", target_offset, 0.40)
 	else:
 		offset = target_offset
+	camera_transformed.emit()
 	queue_redraw()
+
+
+## Проверяет, смотрит ли камера сейчас на доски Настоящего.
+func is_camera_at_present() -> bool:
+	if state == null:
+		return true
+	var ls: Array = state.mandatory_timelines()
+	if ls.is_empty():
+		ls = state.playable_timelines()
+	if ls.is_empty():
+		ls = state.timeline_ids()
+	var r := Rect2()
+	var first := true
+	for l in ls:
+		var br := Rect2(board_origin(l, state.end_t(l)), board_size())
+		r = br if first else r.merge(br)
+		first = false
+	var target_world: Vector2 = r.get_center()
+	var cur_world: Vector2 = screen_to_world(size / 2.0)
+	return cur_world.distance_to(target_world) < SQ * 2.5
 
 
 ## Показать доски настоящего с плавной анимацией камеры.
@@ -356,6 +382,7 @@ func focus_board(l: int, t: int, smooth: bool = true) -> void:
 
 ## Вписать прямоугольник мира `r` в экран (с полями) и переместить туда камеру.
 func _move_camera(r: Rect2, min_zoom: float, max_zoom: float, smooth: bool) -> void:
+	_pan_velocity = Vector2.ZERO
 	var fit: float = minf(size.x / (r.size.x + SQ * 4.5), size.y / (r.size.y + SQ * 4.5))
 	var target_zoom: float = clampf(fit, min_zoom, max_zoom)
 	var target_world: Vector2 = r.get_center()
@@ -363,8 +390,8 @@ func _move_camera(r: Rect2, min_zoom: float, max_zoom: float, smooth: bool) -> v
 		if _cam_tween:
 			_cam_tween.kill()
 		_cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		_cam_tween.tween_property(self, "zoom", target_zoom, 0.45)
-		_cam_tween.tween_property(self, "offset", size / 2.0 - target_world * target_zoom, 0.45)
+		_cam_tween.tween_property(self, "zoom", target_zoom, 0.40)
+		_cam_tween.tween_property(self, "offset", size / 2.0 - target_world * target_zoom, 0.40)
 		_cam_tween.finished.connect(func(): camera_transformed.emit())
 	else:
 		zoom = target_zoom
@@ -382,16 +409,16 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var e: InputEventScreenTouch = event
 		if e.pressed:
-			if _cam_tween:
-				_cam_tween.kill()
 			_pan_velocity = Vector2.ZERO
 			_touches[e.index] = e.position
 			if _touches.size() == 1:
 				_drag_dist = 0.0
-			elif _touches.size() == 2:
+			elif _touches.size() >= 2:
+				if _cam_tween:
+					_cam_tween.kill()
 				_pinch_dist = _pinch_span()
 		else:
-			if _touches.size() == 1 and _drag_dist < 18.0:
+			if _touches.size() == 1 and _drag_dist < 26.0:
 				_tap(e.position)
 			_touches.erase(e.index)
 			# Один палец остался после щипка — не считаем его последующее отпускание тапом.
@@ -402,6 +429,8 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag:
 		var e: InputEventScreenDrag = event
 		if _touches.size() >= 2:
+			if _cam_tween:
+				_cam_tween.kill()
 			_touches[e.index] = e.position
 			var d: float = _pinch_span()
 			if _pinch_dist > 0.0 and d > 0.0:
@@ -412,7 +441,10 @@ func _gui_input(event: InputEvent) -> void:
 		else:
 			_touches[e.index] = e.position
 			_drag_dist += e.relative.length()
-			if _drag_dist >= 12.0:
+			# Реальное намеренное перемещение камеры пальцем (защита от случайного микродвижения при тапе)
+			if _drag_dist >= 32.0:
+				if _cam_tween:
+					_cam_tween.kill()
 				offset += e.relative
 				_pan_velocity = e.velocity
 				user_dragged_view.emit()
