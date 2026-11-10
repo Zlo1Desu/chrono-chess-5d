@@ -569,9 +569,6 @@ func _switch_tab(idx: int) -> void:
 	if _scroll_container != null:
 		_scroll_container.scroll_vertical = 0
 
-	if sfx != null:
-		sfx.play("move")
-
 	_update_crystals_display()
 
 	if idx == 2:

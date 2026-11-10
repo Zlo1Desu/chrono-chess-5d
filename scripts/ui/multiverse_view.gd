@@ -3,6 +3,8 @@ extends Control
 ## Высокопроизводительная и визуально улучшенная отрисовка мультивселенной 5D-шахмат.
 
 signal square_tapped(pos: Vector4i)
+signal user_dragged_view
+signal camera_transformed
 
 const SQ := 48.0
 
@@ -139,6 +141,7 @@ func _process(delta: float) -> void:
 		offset += _pan_velocity * delta
 		_pan_velocity = _pan_velocity.move_toward(Vector2.ZERO, delta * 3200.0)
 		_pan_velocity *= pow(0.88, delta * 60.0)
+		camera_transformed.emit()
 
 	queue_redraw()
 
@@ -362,9 +365,11 @@ func _move_camera(r: Rect2, min_zoom: float, max_zoom: float, smooth: bool) -> v
 		_cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		_cam_tween.tween_property(self, "zoom", target_zoom, 0.45)
 		_cam_tween.tween_property(self, "offset", size / 2.0 - target_world * target_zoom, 0.45)
+		_cam_tween.finished.connect(func(): camera_transformed.emit())
 	else:
 		zoom = target_zoom
 		center_on(target_world, false)
+		camera_transformed.emit()
 
 
 func refresh() -> void:
@@ -410,20 +415,30 @@ func _gui_input(event: InputEvent) -> void:
 			if _drag_dist >= 12.0:
 				offset += e.relative
 				_pan_velocity = e.velocity
+				user_dragged_view.emit()
+				camera_transformed.emit()
 				queue_redraw()
 		accept_event()
 	elif event is InputEventMouseButton:
 		var e: InputEventMouseButton = event
 		if e.pressed and e.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_zoom_at(e.position, 1.14)
+			user_dragged_view.emit()
+			camera_transformed.emit()
 		elif e.pressed and e.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			_zoom_at(e.position, 1.0 / 1.14)
+			user_dragged_view.emit()
+			camera_transformed.emit()
 	elif event is InputEventMagnifyGesture:
 		var e: InputEventMagnifyGesture = event
 		_zoom_at(e.position, e.factor)
+		user_dragged_view.emit()
+		camera_transformed.emit()
 	elif event is InputEventPanGesture:
 		var e: InputEventPanGesture = event
 		offset -= e.delta * 22.0
+		user_dragged_view.emit()
+		camera_transformed.emit()
 		queue_redraw()
 
 
@@ -509,6 +524,17 @@ func _draw() -> void:
 	var recent: Array = _recent_moves()
 	var last: Dictionary = _last_squares(recent)
 	var threatened_squares: Dictionary = _threatened_squares()
+
+	# Отрисовка стрелок недавних ходов ПОД досками, чтобы они не заслоняли клетки и фигуры
+	for m in recent:
+		var f: Vector4i = m["f"]
+		var to: Vector4i = m["t"]
+		if f.z == to.z and f.w == to.w:
+			continue
+		var dst := Vector4i(to.x, to.y, to.z + 1, int(m.get("nl", to.w)))
+		if not state.has_board(dst.w, dst.z):
+			dst = to
+		_draw_arrow(square_rect(f).get_center(), square_rect(dst).get_center(), Color(0.85, 0.45, 1.0, 0.42), SQ * 0.08)
 
 	for l in state.timelines:
 		var active: bool = state.is_active(l)
@@ -599,17 +625,6 @@ func _draw() -> void:
 		var ht: Vector4i = hint_move["t"]
 		var h_pulse: float = sin(_anim_time * 6.0) * 0.2 + 0.8
 		_draw_arrow(square_rect(hf).get_center(), square_rect(ht).get_center(), Color(0.25, 0.98, 0.72, 0.95 * h_pulse))
-
-	# Стрелки ходов (последний ход соперника и текущий ход)
-	for m in recent:
-		var f: Vector4i = m["f"]
-		var to: Vector4i = m["t"]
-		if f.z == to.z and f.w == to.w:
-			continue
-		var dst := Vector4i(to.x, to.y, to.z + 1, int(m.get("nl", to.w)))
-		if not state.has_board(dst.w, dst.z):
-			dst = to
-		_draw_arrow(square_rect(f).get_center(), square_rect(dst).get_center(), Color(0.75, 0.5, 1.0, 0.9))
 
 	# Стрелки и лазеры угроз королям
 	var cur_threats: Array = mate_info.get("threats", threats) if not mate_info.is_empty() else threats
@@ -845,8 +860,8 @@ func _draw_curve(a: Vector2, b: Vector2, col: Color, width: float) -> void:
 	draw_polyline(pts, col, width, true)
 
 
-func _draw_arrow(a: Vector2, b: Vector2, col: Color) -> void:
-	var w: float = SQ * 0.14
+func _draw_arrow(a: Vector2, b: Vector2, col: Color, p_width: float = -1.0) -> void:
+	var w: float = p_width if p_width > 0.0 else (SQ * 0.14)
 	var dir: Vector2 = (b - a).normalized()
 	if dir == Vector2.ZERO:
 		return

@@ -18,6 +18,19 @@ var is_dragging: bool = false
 func _ready() -> void:
 	custom_minimum_size = Vector2(130, 80)
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	if view != null:
+		_bind_view()
+
+
+func set_view(p_view: MultiverseView) -> void:
+	view = p_view
+	if is_inside_tree():
+		_bind_view()
+
+
+func _bind_view() -> void:
+	if view != null and not view.camera_transformed.is_connected(queue_redraw):
+		view.camera_transformed.connect(queue_redraw)
 
 
 func _gui_input(event: InputEvent) -> void:

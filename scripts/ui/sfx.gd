@@ -6,10 +6,17 @@ const RATE := 44100
 
 var _players: Array = []
 var _streams: Dictionary = {}
+var _ambient_player: AudioStreamPlayer
 var enabled: bool = true
+var _ambient_active: bool = false
 
 
 func _ready() -> void:
+	# Создаём фоновый плеер для эмбиента
+	_ambient_player = AudioStreamPlayer.new()
+	_ambient_player.bus = "Master"
+	add_child(_ambient_player)
+
 	# Создаём пул из 8 плееров для насыщенного полифонического звучания
 	for i in 8:
 		var p := AudioStreamPlayer.new()
@@ -17,6 +24,22 @@ func _ready() -> void:
 		_players.append(p)
 
 	_generate_all()
+
+
+func start_ambient() -> void:
+	_ambient_active = true
+	if not enabled or _ambient_player == null or not _streams.has("ambient"):
+		return
+	if not _ambient_player.playing:
+		_ambient_player.stream = _streams["ambient"]
+		_ambient_player.volume_db = -12.0
+		_ambient_player.play()
+
+
+func stop_ambient() -> void:
+	_ambient_active = false
+	if _ambient_player != null and _ambient_player.playing:
+		_ambient_player.stop()
 
 
 func play(id: String) -> void:
@@ -63,12 +86,19 @@ func toggle() -> bool:
 	enabled = not enabled
 	Settings.sound_enabled = enabled
 	Settings.save_to_disk()
+	if not enabled:
+		if _ambient_player != null and _ambient_player.playing:
+			_ambient_player.stop()
+	else:
+		if _ambient_active:
+			start_ambient()
 	return enabled
 
 
 # ---------------------------------------------------------------- Генерация звуков
 
 func _generate_all() -> void:
+	_streams["ambient"] = _synth_ambient()
 	_streams["click"] = _synth_click()
 	_streams["move"] = _synth_move()
 	_streams["capture"] = _synth_capture()
@@ -96,6 +126,71 @@ func _make(samples: PackedFloat32Array) -> AudioStreamWAV:
 	s.stereo = false
 	s.data = data
 	return s
+
+
+func _make_looping(samples: PackedFloat32Array) -> AudioStreamWAV:
+	var s := _make(samples)
+	s.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	s.loop_begin = 0
+	s.loop_end = samples.size()
+	return s
+
+
+## 0. Атмосферный космический хроно-эмбиент главного меню (бесшовный 8-секундный пад)
+func _synth_ambient() -> AudioStreamWAV:
+	var dur: float = 8.0
+	var n: int = int(dur * RATE)
+	var buf := PackedFloat32Array()
+	buf.resize(n)
+
+	# Частоты гармоник подобраны так, чтобы на длительности dur = 8.0 сек
+	# укладывалось точное целочисленное количество циклов (фазовая непрерывность при зацикливании):
+	var c_sub: float = 294.0      # 36.75 Гц (D1)
+	var c_root: float = 588.0     # 73.50 Гц (D2)
+	var c_root_det: float = 590.0 # 73.75 Гц (мягкий хорус 0.25 Гц)
+	var c_fifth: float = 882.0    # 110.25 Гц (A2)
+	var c_fifth_det: float = 883.0# 110.375 Гц
+	var c_oct: float = 1176.0     # 147.00 Гц (D3)
+	var c_oct_det: float = 1178.0 # 147.25 Гц
+	var c_min3: float = 1398.0    # 174.75 Гц (F3 - минорная квантовая загадка)
+	var c_fifth2: float = 1764.0  # 220.50 Гц (A3)
+	var c_min7: float = 2090.0    # 261.25 Гц (C4 - септаккорд Dm7)
+	var c_ext9: float = 2646.0    # 330.75 Гц (E4 - нона, воздушный объем)
+	var c_shimmer: float = 3528.0 # 441.00 Гц (A4 - звездный мерцающий резонанс)
+
+	for i in n:
+		var t_norm: float = float(i) / float(n)
+		var t: float = t_norm * dur
+
+		# Медленные дыхательные LFO (периоды 8.0с, 4.0с, 2.67с, 2.0с)
+		var lfo1: float = 0.5 + 0.5 * sin(TAU * 1.0 * t_norm)
+		var lfo2: float = 0.5 + 0.5 * sin(TAU * 2.0 * t_norm + 1.2)
+		var lfo3: float = 0.5 + 0.5 * sin(TAU * 3.0 * t_norm + 2.5)
+		var lfo4: float = 0.5 + 0.5 * sin(TAU * 4.0 * t_norm + 0.7)
+
+		# Глубокий суббас и фундаментальный тон времени
+		var sub: float = sin(TAU * (c_sub / dur) * t) * 0.22
+		var bass: float = (sin(TAU * (c_root / dur) * t) + 0.7 * sin(TAU * (c_root_det / dur) * t)) * 0.20
+
+		# Теплая квинта и октава
+		var mid5: float = (sin(TAU * (c_fifth / dur) * t) + 0.6 * sin(TAU * (c_fifth_det / dur) * t)) * (0.12 + 0.06 * lfo1)
+		var midoct: float = (sin(TAU * (c_oct / dur) * t) + 0.5 * sin(TAU * (c_oct_det / dur) * t)) * (0.10 + 0.05 * lfo2)
+
+		# Космические гармоники аккорда Dm9
+		var chord: float = sin(TAU * (c_min3 / dur) * t) * (0.07 + 0.04 * lfo3) \
+						 + sin(TAU * (c_fifth2 / dur) * t) * (0.06 + 0.03 * lfo2) \
+						 + sin(TAU * (c_min7 / dur) * t) * (0.04 + 0.03 * lfo4) \
+						 + sin(TAU * (c_ext9 / dur) * t) * (0.03 + 0.02 * lfo1)
+
+		# Мерцание хроно-поля
+		var shimmer: float = sin(TAU * (c_shimmer / dur) * t) * (0.015 + 0.015 * lfo3)
+
+		var total: float = sub + bass + mid5 + midoct + chord + shimmer
+
+		# Мягкое аналоговое насыщение для приятного ненавязчивого звучания
+		buf[i] = (total / (1.0 + 0.4 * absf(total))) * 0.55
+
+	return _make_looping(buf)
 
 
 ## 1. Мягкий тактильный клик интерфейса

@@ -29,6 +29,8 @@ func show_menu() -> void:
 		_current.queue_free()
 		_current = null
 	net.close()
+	if sfx != null:
+		sfx.start_ambient()
 	var menu := MenuScreen.new()
 	menu.setup(net, sfx)
 	menu.start_game.connect(_on_start_game)
@@ -39,6 +41,8 @@ func show_menu() -> void:
 
 
 func _on_start_game(variant_id: String, mode: String, color: int, ai_level: int, initial_turns: Array = []) -> void:
+	if sfx != null:
+		sfx.stop_ambient()
 	if _current != null:
 		_current.queue_free()
 		_current = null
@@ -50,6 +54,8 @@ func _on_start_game(variant_id: String, mode: String, color: int, ai_level: int,
 
 
 func _on_start_multi_game(sub_mode: String, is_pass_and_play: bool, color: int, ai_level: int, p_net: Net = null, p_slots: Array = [], p_is_d20: bool = false) -> void:
+	if sfx != null:
+		sfx.stop_ambient()
 	if _current != null:
 		_current.queue_free()
 		_current = null
@@ -61,6 +67,8 @@ func _on_start_multi_game(sub_mode: String, is_pass_and_play: bool, color: int, 
 
 
 func _on_start_puzzle_game(puzzle_data: Dictionary) -> void:
+	if sfx != null:
+		sfx.stop_ambient()
 	if _current != null:
 		_current.queue_free()
 		_current = null
