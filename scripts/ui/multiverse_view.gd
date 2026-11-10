@@ -64,6 +64,7 @@ var _ripples: Array = []
 var _sparks: Array = []
 var _floating_texts: Array = []
 var _prev_size: Vector2 = Vector2.ZERO
+var _pan_velocity: Vector2 = Vector2.ZERO
 # Кэш самого раннего полухода (зависит только от набора линий, а нужен для каждой клетки).
 var _min_t_cache: int = 0
 var _min_t_key: int = -1
@@ -132,6 +133,12 @@ func _process(delta: float) -> void:
 				ft["vel"].y *= 0.95
 				rem_t.append(ft)
 		_floating_texts = rem_t
+
+	# Инерционное скольжение камеры после свайпа
+	if _touches.is_empty() and _pan_velocity.length_squared() > 10.0:
+		offset += _pan_velocity * delta
+		_pan_velocity = _pan_velocity.move_toward(Vector2.ZERO, delta * 3200.0)
+		_pan_velocity *= pow(0.88, delta * 60.0)
 
 	queue_redraw()
 
@@ -372,6 +379,7 @@ func _gui_input(event: InputEvent) -> void:
 		if e.pressed:
 			if _cam_tween:
 				_cam_tween.kill()
+			_pan_velocity = Vector2.ZERO
 			_touches[e.index] = e.position
 			if _touches.size() == 1:
 				_drag_dist = 0.0
@@ -384,6 +392,7 @@ func _gui_input(event: InputEvent) -> void:
 			# Один палец остался после щипка — не считаем его последующее отпускание тапом.
 			if _touches.size() == 1:
 				_drag_dist = 999.0
+				_pan_velocity = Vector2.ZERO
 		accept_event()
 	elif event is InputEventScreenDrag:
 		var e: InputEventScreenDrag = event
@@ -394,11 +403,13 @@ func _gui_input(event: InputEvent) -> void:
 				_zoom_at(_pinch_mid(), d / _pinch_dist)
 			_pinch_dist = d
 			_drag_dist = 999.0
+			_pan_velocity = Vector2.ZERO
 		else:
 			_touches[e.index] = e.position
 			_drag_dist += e.relative.length()
 			if _drag_dist >= 12.0:
 				offset += e.relative
+				_pan_velocity = e.velocity
 				queue_redraw()
 		accept_event()
 	elif event is InputEventMouseButton:

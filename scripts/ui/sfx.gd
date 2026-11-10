@@ -20,6 +20,9 @@ func _ready() -> void:
 
 
 func play(id: String) -> void:
+	# Тактильный отклик (Haptic Feedback) на поддерживаемых платформах (Android / мобилки)
+	_trigger_haptic(id)
+
 	if not enabled or not _streams.has(id):
 		return
 	for p in _players:
@@ -31,6 +34,28 @@ func play(id: String) -> void:
 	if not _players.is_empty():
 		_players[0].stream = _streams[id]
 		_players[0].play()
+
+
+func _trigger_haptic(id: String) -> void:
+	match id:
+		"click":
+			Input.vibrate_handheld(12)
+		"move":
+			Input.vibrate_handheld(18)
+		"capture":
+			Input.vibrate_handheld(35)
+		"travel":
+			Input.vibrate_handheld(50)
+		"branch":
+			Input.vibrate_handheld(75)
+		"crit":
+			Input.vibrate_handheld(80)
+		"check":
+			Input.vibrate_handheld(65)
+		"block", "error":
+			Input.vibrate_handheld(40)
+		"win":
+			Input.vibrate_handheld(100)
 
 
 ## Переключает звук, сохраняет настройку и возвращает новое состояние.

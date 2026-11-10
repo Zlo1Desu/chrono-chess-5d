@@ -42,6 +42,11 @@ var _promo_popup: PanelContainer
 var _pending_promo: Dictionary = {}
 var _toast_tween: Tween
 var _ai_thread: Thread
+var _minimap: TimelineMinimap
+var _minimap_toggle_btn: Button
+var _chrono_wheel: ChronoWheel
+var _rift_rect: ColorRect
+var _rift_material: ShaderMaterial
 
 # Элементы переподключения (Reconnection System)
 var _initial_turns: Array = []
@@ -104,6 +109,9 @@ func _ready() -> void:
 			p_skins[k] = net.player_skins[k]
 	view.player_skins = p_skins
 	add_child(view)
+
+	# Экранный слой шейдера временного разлома (Chrono Rift)
+	_setup_rift_shader()
 
 	_build_hud()
 
@@ -227,6 +235,20 @@ func _build_hud() -> void:
 		_update_autofocus_btn()
 		view.focus_present(true))
 	top_row.add_child(_present_btn)
+
+	_minimap_toggle_btn = _button("🗺️ Карта", _toggle_minimap)
+	top_row.add_child(_minimap_toggle_btn)
+
+	# Плавающая интерактивная миникарта мультивселенной
+	_minimap = TimelineMinimap.new()
+	_minimap.view = view
+	_minimap.board_selected.connect(func(l: int, t: int):
+		auto_follow_present = false
+		_update_autofocus_btn()
+		view.focus_board(l, t, true)
+		_play("click")
+	)
+	add_child(_minimap)
 
 	_bottom_panel = PanelContainer.new()
 	_bottom_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
@@ -425,6 +447,15 @@ func _on_viewport_resized() -> void:
 		_opp_dc_banner.offset_top = _top_panel.size.y + 8
 		_opp_dc_banner.offset_bottom = _opp_dc_banner.offset_top + 46
 
+	# Размещение миникарты в правом нижнем углу над нижней панелью управления
+	if _minimap != null:
+		var mm_w: float = clampf(w * 0.28, 140.0, 240.0) if not is_phone_portrait else clampf(w * 0.44, 130.0, 180.0)
+		var mm_h: float = clampf(h * 0.16, 75.0, 120.0) if not is_phone_portrait else 75.0
+		var bot_margin: float = _bottom_panel.size.y + 12.0
+		_minimap.size = Vector2(mm_w, mm_h)
+		_minimap.position = Vector2(w - mm_w - maxf(12.0, insets.right + 8.0), h - bot_margin - mm_h)
+		_minimap.queue_redraw()
+
 
 func _panel_style() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
@@ -552,6 +583,8 @@ func _after_state_change() -> void:
 	_btn_submit.disabled = not sub_ready
 	_update_submit_button_style(sub_ready)
 	view.refresh()
+	if _minimap != null:
+		_minimap.queue_redraw()
 
 
 func _update_submit_button_style(ready: bool) -> void:
@@ -603,6 +636,10 @@ func _on_square_tapped(v: Vector4i) -> void:
 		return
 	if _promo_popup != null:
 		return
+	if _chrono_wheel != null:
+		_chrono_wheel.close()
+		_chrono_wheel = null
+
 	if view.targets.has(v):
 		var m: Dictionary = {"f": view.selected, "t": v}
 		var p: int = state.piece_at(view.selected)
@@ -615,7 +652,8 @@ func _on_square_tapped(v: Vector4i) -> void:
 		view.selected = v
 		view.targets = []
 		var temporal_cnt: int = 0
-		for m in state.moves_from(v):
+		var all_moves: Array = state.moves_from(v)
+		for m in all_moves:
 			var tv: Vector4i = m["t"]
 			view.targets.append(tv)
 			if tv.z != v.z or tv.w != v.w:
@@ -628,12 +666,42 @@ func _on_square_tapped(v: Vector4i) -> void:
 		_info.text = "🔹 %s [%s] — %s · Ходов: %d%s" % [p_name, sq_name, _piece_rule_hint(pt), view.targets.size(), time_tag]
 		_play("click")
 		view.refresh()
+
+		# Если фигура может прыгать сквозь время/пространство — открываем радиальное Колесо Времени!
+		if temporal_cnt > 0 and view.targets.size() >= 2:
+			_open_chrono_wheel(v, view.targets)
 	else:
 		_clear_selection()
 		_after_state_change()
 
 
+func _open_chrono_wheel(origin: Vector4i, targets_list: Array) -> void:
+	if _chrono_wheel != null:
+		_chrono_wheel.close()
+		_chrono_wheel = null
+
+	var wheel := ChronoWheel.new()
+	wheel.setup_for_piece(view, origin, targets_list)
+	wheel.board_preview_requested.connect(func(l: int, t: int):
+		auto_follow_present = false
+		_update_autofocus_btn()
+		view.focus_board(l, t, true)
+		_play("click")
+	)
+	wheel.target_selected.connect(func(target_sq: Vector4i):
+		_on_square_tapped(target_sq)
+	)
+	wheel.closed.connect(func():
+		_chrono_wheel = null
+	)
+	_chrono_wheel = wheel
+	add_child(_chrono_wheel)
+
+
 func _clear_selection() -> void:
+	if _chrono_wheel != null:
+		_chrono_wheel.close()
+		_chrono_wheel = null
 	view.selected = Vector4i(-1, -1, 0, 0)
 	view.targets = []
 	view.refresh()
@@ -743,10 +811,54 @@ func _animate_and_apply(m: Dictionary) -> void:
 		var target_c: Vector2 = view.square_rect(dest_v).get_center()
 		view.emit_sparks(target_c, Color(0.85, 0.45, 1.0), 38, 250.0, true)
 		view.add_floating_text("🌀 НОВАЯ ВЕТВЬ ВРЕМЕНИ!", target_c, Color(0.9, 0.5, 1.0), 22)
+		_trigger_rift_shockwave(dest_v)
+	elif is_temporal:
+		_trigger_rift_shockwave(dest_v)
 	elif capture:
 		_play("capture")
 	else:
 		_play("move")
+
+
+func _setup_rift_shader() -> void:
+	_rift_rect = ColorRect.new()
+	_rift_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_rift_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rift_material = ShaderMaterial.new()
+	var shader_res := load("res://shaders/chrono_rift.gdshader")
+	if shader_res != null:
+		_rift_material.shader = shader_res
+		_rift_material.set_shader_parameter("rift_progress", 1.0)
+		_rift_material.set_shader_parameter("distortion_strength", 0.05)
+		_rift_material.set_shader_parameter("chromatic_aberration", 0.025)
+		_rift_rect.material = _rift_material
+		_rift_rect.visible = false
+	add_child(_rift_rect)
+
+
+func _trigger_rift_shockwave(target_square: Vector4i) -> void:
+	if _rift_material == null or _rift_rect == null:
+		return
+	var vp_size := get_viewport_rect().size
+	if vp_size.x <= 0.0 or vp_size.y <= 0.0:
+		return
+	var world_center: Vector2 = view.square_rect(target_square).get_center()
+	var screen_pos: Vector2 = world_center * view.zoom + view.offset
+	var norm_center := Vector2(screen_pos.x / vp_size.x, screen_pos.y / vp_size.y)
+
+	_rift_material.set_shader_parameter("rift_center", norm_center)
+	_rift_material.set_shader_parameter("rift_progress", 0.0)
+	_rift_rect.visible = true
+
+	var tw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_method(func(val: float):
+		if _rift_material != null:
+			_rift_material.set_shader_parameter("rift_progress", val)
+	, 0.0, 1.0, 0.48)
+	tw.finished.connect(func():
+		if _rift_rect != null:
+			_rift_rect.visible = false
+	)
 
 
 ## Затемнённый модальный слой с панелью по центру экрана.
@@ -961,6 +1073,13 @@ func _toggle_autofocus() -> void:
 	_update_autofocus_btn()
 	if auto_follow_present:
 		view.focus_present(true)
+
+
+func _toggle_minimap() -> void:
+	if _minimap != null:
+		_minimap.visible = not _minimap.visible
+		_minimap_toggle_btn.text = "🗺️ Карта" if _minimap.visible else "🗺️ Карта (скрыта)"
+		_play("click")
 
 
 func _update_autofocus_btn() -> void:
