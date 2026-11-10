@@ -96,6 +96,11 @@ func _ready() -> void:
 	view.state = state
 	view.flip = mode != MODE_LOCAL and human_color == GameState.BLACK
 	view.square_tapped.connect(_on_square_tapped)
+	view.user_dragged_view.connect(func():
+		if auto_follow_present:
+			auto_follow_present = false
+			_update_autofocus_btn()
+	)
 
 	# Настройка отображения скинов игроков
 	var p_skins: Dictionary = {
