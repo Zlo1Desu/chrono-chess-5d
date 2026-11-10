@@ -43,7 +43,6 @@ var _pending_promo: Dictionary = {}
 var _toast_tween: Tween
 var _ai_thread: Thread
 var _minimap: TimelineMinimap
-var _minimap_toggle_btn: Button
 var _chrono_wheel: ChronoWheel
 var _rift_rect: ColorRect
 var _rift_material: ShaderMaterial
@@ -243,12 +242,9 @@ func _build_hud() -> void:
 		view.focus_present(true))
 	top_row.add_child(_present_btn)
 
-	_minimap_toggle_btn = _button("🗺️ Карта", _toggle_minimap)
-	top_row.add_child(_minimap_toggle_btn)
-
-	# Плавающая интерактивная миникарта мультивселенной
+	# Постоянная интерактивная миникарта мультивселенной
 	_minimap = TimelineMinimap.new()
-	_minimap.view = view
+	_minimap.set_view(view)
 	_minimap.board_selected.connect(func(l: int, t: int):
 		auto_follow_present = false
 		_update_autofocus_btn()
@@ -1078,15 +1074,9 @@ func _focus_on_threat() -> void:
 func _toggle_autofocus() -> void:
 	auto_follow_present = not auto_follow_present
 	_update_autofocus_btn()
+	_play("click")
 	if auto_follow_present:
 		view.focus_present(true)
-
-
-func _toggle_minimap() -> void:
-	if _minimap != null:
-		_minimap.visible = not _minimap.visible
-		_minimap_toggle_btn.text = "🗺️ Карта" if _minimap.visible else "🗺️ Карта (скрыта)"
-		_play("click")
 
 
 func _update_autofocus_btn() -> void:
