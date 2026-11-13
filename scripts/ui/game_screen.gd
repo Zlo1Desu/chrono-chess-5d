@@ -22,7 +22,10 @@ var puzzle_data: Dictionary = {}
 
 var view: MultiverseView
 var _top_panel: PanelContainer
+var _top_row: HBoxContainer
+var _puzzle_row: HBoxContainer
 var _bottom_panel: PanelContainer
+var _bottom_row: HBoxContainer
 var _menu_btn: Button
 var _status: Label
 var _info: Label
@@ -189,13 +192,19 @@ func _build_hud() -> void:
 	_opp_dc_label = Label.new()
 	_opp_dc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_opp_dc_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_opp_dc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_opp_dc_label.add_theme_font_size_override("font_size", 14)
 	_opp_dc_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.6))
 	_opp_dc_banner.add_child(_opp_dc_label)
 
+	var top_vb := VBoxContainer.new()
+	top_vb.add_theme_constant_override("separation", 6)
+	_top_panel.add_child(top_vb)
+
 	var top_row := HBoxContainer.new()
 	top_row.add_theme_constant_override("separation", 8)
-	_top_panel.add_child(top_row)
+	top_vb.add_child(top_row)
+	_top_row = top_row
 
 	_menu_btn = _button("Меню", _on_menu)
 	top_row.add_child(_menu_btn)
@@ -235,6 +244,12 @@ func _build_hud() -> void:
 	_autofocus_btn = _button("🟢 Авто", _toggle_autofocus)
 	top_row.add_child(_autofocus_btn)
 
+	if mode == MODE_PUZZLE:
+		_puzzle_row = HBoxContainer.new()
+		_puzzle_row.add_theme_constant_override("separation", 6)
+		_puzzle_row.visible = false
+		top_vb.add_child(_puzzle_row)
+
 	# Постоянная интерактивная миникарта мультивселенной
 	_minimap = TimelineMinimap.new()
 	_minimap.set_view(view)
@@ -256,6 +271,7 @@ func _build_hud() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 10)
 	_bottom_panel.add_child(row)
+	_bottom_row = row
 
 	_btn_undo = _button("Отменить", _on_undo)
 	_btn_undo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -296,9 +312,9 @@ func _build_hud() -> void:
 	_toast.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_toast.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_toast.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_toast.position.y -= 110
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_toast.add_theme_font_size_override("font_size", 20)
+	_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_toast.add_theme_font_size_override("font_size", 18)
 	_toast.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
 	_toast.add_theme_color_override("font_outline_color", Color.BLACK)
 	_toast.add_theme_constant_override("outline_size", 6)
@@ -315,7 +331,7 @@ func _on_viewport_resized() -> void:
 	var w: float = vp_size.x
 	var h: float = vp_size.y
 	var is_compact: bool = w < 840.0 or h < 560.0
-	var is_phone_portrait: bool = w < 540.0 and h >= w
+	var is_phone_portrait: bool = (w < 640.0 and h >= w) or (w < 520.0)
 	var is_medium: bool = not is_compact and w < 1080.0
 
 	var top_sb := _panel_style()
@@ -333,9 +349,26 @@ func _on_viewport_resized() -> void:
 	bot_sb.set_corner_radius_all(16)
 	_bottom_panel.add_theme_stylebox_override("panel", bot_sb)
 
+	if _bottom_row != null:
+		_bottom_row.add_theme_constant_override("separation", 6 if is_phone_portrait else 10)
+
+	# На узких экранах (< 720) переносим кнопки задач во вторую строку, чтобы статус не сжимался в 0px
+	if mode == MODE_PUZZLE and _puzzle_row != null and _top_row != null:
+		var use_second_row: bool = w < 720.0
+		_puzzle_row.visible = use_second_row
+		var target_parent: HBoxContainer = _puzzle_row if use_second_row else _top_row
+		var insert_idx: int = 0 if use_second_row else 1
+		for pb in [_puz_restart_btn, _puz_hint_btn, _puz_next_btn]:
+			if pb != null:
+				if pb.get_parent() != target_parent:
+					pb.reparent(target_parent)
+					target_parent.move_child(pb, insert_idx)
+				pb.size_flags_horizontal = Control.SIZE_EXPAND_FILL if use_second_row else Control.SIZE_SHRINK_BEGIN
+				insert_idx += 1
+
 	if is_phone_portrait:
 		_menu_btn.text = "Меню"
-		_menu_btn.custom_minimum_size = Vector2(62, 42)
+		_menu_btn.custom_minimum_size = Vector2(64, 44)
 		_status.add_theme_font_size_override("font_size", 14)
 		_info.add_theme_font_size_override("font_size", 11)
 		_btn_undo.text = "Отмена"
@@ -343,20 +376,20 @@ func _on_viewport_resized() -> void:
 		if _btn_hint != null:
 			_btn_hint.text = "💡 Совет"
 			_btn_hint.custom_minimum_size = Vector2(0, 44)
-			_btn_hint.add_theme_font_size_override("font_size", 14)
+			_btn_hint.add_theme_font_size_override("font_size", 13)
 		_btn_submit.text = "Завершить"
 		for b in [_btn_undo, _btn_reset, _btn_submit]:
 			b.custom_minimum_size = Vector2(0, 44)
-			b.add_theme_font_size_override("font_size", 14)
+			b.add_theme_font_size_override("font_size", 13)
 		if _puz_restart_btn != null:
 			_puz_restart_btn.text = "Заново"
-			_puz_restart_btn.custom_minimum_size = Vector2(64, 42)
+			_puz_restart_btn.custom_minimum_size = Vector2(0, 44)
 		if _puz_hint_btn != null:
 			_puz_hint_btn.text = "💡 Подск."
-			_puz_hint_btn.custom_minimum_size = Vector2(72, 42)
+			_puz_hint_btn.custom_minimum_size = Vector2(0, 44)
 		if _puz_next_btn != null:
 			_puz_next_btn.text = "🎲 След."
-			_puz_next_btn.custom_minimum_size = Vector2(66, 42)
+			_puz_next_btn.custom_minimum_size = Vector2(0, 44)
 	elif is_compact:
 		_menu_btn.text = "Меню"
 		_menu_btn.custom_minimum_size = Vector2(72, 44)
@@ -431,15 +464,28 @@ func _on_viewport_resized() -> void:
 			_puz_next_btn.custom_minimum_size = Vector2(116, 48)
 
 	_update_autofocus_btn()
+	var top_h: float = maxf(_top_panel.size.y, _top_panel.get_combined_minimum_size().y)
 	if _opp_dc_banner != null and _top_panel != null:
-		_opp_dc_banner.offset_top = _top_panel.size.y + 8
-		_opp_dc_banner.offset_bottom = _opp_dc_banner.offset_top + 46
+		_opp_dc_banner.offset_top = top_h + 8.0
+		_opp_dc_banner.offset_bottom = _opp_dc_banner.offset_top + 48.0
+
+	var bot_h: float = maxf(_bottom_panel.size.y, _bottom_panel.get_combined_minimum_size().y)
+	var bot_margin: float = bot_h + 12.0
+
+	# Позиционирование тоста над нижней панелью без наложения
+	if _toast != null:
+		var toast_w: float = minf(w - 32.0, 520.0)
+		_toast.custom_minimum_size.x = toast_w
+		_toast.add_theme_font_size_override("font_size", 16 if is_phone_portrait else 18)
+		_toast.offset_left = -toast_w * 0.5
+		_toast.offset_right = toast_w * 0.5
+		_toast.offset_bottom = -(bot_h + 18.0)
+		_toast.offset_top = -(bot_h + 78.0)
 
 	# Размещение миникарты в правом нижнем углу над нижней панелью управления
 	if _minimap != null:
 		var mm_w: float = clampf(w * 0.28, 140.0, 240.0) if not is_phone_portrait else clampf(w * 0.44, 130.0, 180.0)
-		var mm_h: float = clampf(h * 0.16, 75.0, 120.0) if not is_phone_portrait else 75.0
-		var bot_margin: float = _bottom_panel.size.y + 12.0
+		var mm_h: float = clampf(h * 0.16, 75.0, 120.0) if not is_phone_portrait else 76.0
 		_minimap.size = Vector2(mm_w, mm_h)
 		_minimap.position = Vector2(w - mm_w - maxf(12.0, insets.right + 8.0), h - bot_margin - mm_h)
 		_minimap.queue_redraw()
@@ -891,20 +937,32 @@ func _ask_promotion(m: Dictionary, color: int) -> void:
 	var vb: VBoxContainer = modal[1]
 	_modal_title(vb, "Превращение пешки", 18)
 
-	var hb := HBoxContainer.new()
-	hb.alignment = BoxContainer.ALIGNMENT_CENTER
-	hb.add_theme_constant_override("separation", 6)
-	vb.add_child(hb)
+	var vp_w: float = get_viewport_rect().size.x
+	var pieces_box: Control
+	var btn_sz: float
+	if vp_w < 480.0:
+		var grid := GridContainer.new()
+		grid.columns = 4
+		grid.add_theme_constant_override("h_separation", 8)
+		grid.add_theme_constant_override("v_separation", 8)
+		grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		pieces_box = grid
+		btn_sz = clampf((vp_w - 84.0) / 4.0, 48.0, 64.0)
+	else:
+		var hb := HBoxContainer.new()
+		hb.alignment = BoxContainer.ALIGNMENT_CENTER
+		hb.add_theme_constant_override("separation", 6)
+		pieces_box = hb
+		btn_sz = clampf((vp_w - 80.0) / 7.0, 44.0, 68.0)
+	vb.add_child(pieces_box)
 
 	var bit: int = 0 if color == GameState.WHITE else GameState.BLACK_BIT
-	var vp_w: float = get_viewport_rect().size.x
-	var btn_sz: float = clampf((vp_w - 64.0) / 7.0, 42.0, 68.0)
 	for t in [GameState.QUEEN, GameState.PRINCESS, GameState.ROOK, GameState.BISHOP, GameState.KNIGHT, GameState.UNICORN, GameState.DRAGON]:
 		var b := PieceButton.new()
 		b.piece = t | bit
 		b.custom_minimum_size = Vector2(btn_sz, btn_sz)
 		b.pressed.connect(_on_promo_chosen.bind(t))
-		hb.add_child(b)
+		pieces_box.add_child(b)
 
 
 func _on_promo_chosen(t: int) -> void:
@@ -983,11 +1041,12 @@ func _on_puzzle_solved() -> void:
 	var vb: VBoxContainer = modal[1]
 	_modal_title(vb, "🎉 Головоломка решена!", 22)
 
+	var vp_w: float = get_viewport_rect().size.x
 	var body := Label.new()
 	body.text = msg
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.custom_minimum_size = Vector2(300, 0)
+	body.custom_minimum_size = Vector2(minf(300.0, vp_w - 64.0), 0)
 	body.add_theme_font_size_override("font_size", 15)
 	body.add_theme_color_override("font_color", Color(0.88, 0.94, 1.0))
 	vb.add_child(body)
@@ -1004,8 +1063,9 @@ func _on_puzzle_solved() -> void:
 		overlay.queue_free()
 		exit_requested.emit())
 
+	var btn_w: float = minf(260.0, vp_w - 64.0)
 	for b in [next_btn, inspect_btn, menu_btn]:
-		b.custom_minimum_size = Vector2(260, 46)
+		b.custom_minimum_size = Vector2(btn_w, 46)
 		vb.add_child(b)
 
 
@@ -1079,7 +1139,7 @@ func _update_autofocus_btn() -> void:
 	var w: float = get_viewport_rect().size.x
 	if w < 720.0:
 		_autofocus_btn.text = "🟢 Авто" if auto_follow_present else "⚪ Авто"
-		_autofocus_btn.custom_minimum_size = Vector2(76, 42)
+		_autofocus_btn.custom_minimum_size = Vector2(76, 44)
 	elif w < 960.0:
 		_autofocus_btn.text = "🟢 Авто: ВКЛ" if auto_follow_present else "⚪ Авто: ВЫКЛ"
 		_autofocus_btn.custom_minimum_size = Vector2(106, 44)
@@ -1201,32 +1261,34 @@ func _end_with(text: String) -> void:
 	var vb: VBoxContainer = modal[1]
 	_modal_title(vb, "🏁 Партия окончена", 22)
 
+	var vp_w: float = get_viewport_rect().size.x
 	var body := Label.new()
 	body.text = text
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.custom_minimum_size = Vector2(300, 0)
+	body.custom_minimum_size = Vector2(minf(300.0, vp_w - 64.0), 0)
 	body.add_theme_font_size_override("font_size", 15)
 	body.add_theme_color_override("font_color", Color(0.88, 0.94, 1.0))
 	vb.add_child(body)
 
+	var btn_w: float = minf(260.0, vp_w - 64.0)
 	if mode == MODE_AI or mode == MODE_LOCAL:
 		var rematch_btn := _button("🔄 Сыграть снова", func():
 			overlay.queue_free()
 			_restart_match())
-		rematch_btn.custom_minimum_size = Vector2(260, 46)
+		rematch_btn.custom_minimum_size = Vector2(btn_w, 46)
 		vb.add_child(rematch_btn)
 
 	var inspect_btn := _button("👁 Осмотреть доску", func():
 		_play("click")
 		overlay.queue_free())
-	inspect_btn.custom_minimum_size = Vector2(260, 46)
+	inspect_btn.custom_minimum_size = Vector2(btn_w, 46)
 	vb.add_child(inspect_btn)
 
 	var menu_btn := _button("🏠 В меню", func():
 		overlay.queue_free()
 		exit_requested.emit())
-	menu_btn.custom_minimum_size = Vector2(260, 46)
+	menu_btn.custom_minimum_size = Vector2(btn_w, 46)
 	vb.add_child(menu_btn)
 
 
@@ -1362,8 +1424,11 @@ func _on_self_reconnecting(attempt: int, _max_attempts: int, seconds_left: float
 
 		_modal_title(vb, "📡 Связь с сервером потеряна", 20)
 
+		var vp_w: float = get_viewport_rect().size.x
 		_self_reconnect_label = Label.new()
 		_self_reconnect_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_self_reconnect_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_self_reconnect_label.custom_minimum_size = Vector2(minf(280.0, vp_w - 64.0), 0)
 		_self_reconnect_label.add_theme_font_size_override("font_size", 14)
 		_self_reconnect_label.add_theme_color_override("font_color", Color(0.9, 0.9, 1.0))
 		vb.add_child(_self_reconnect_label)
@@ -1375,7 +1440,7 @@ func _on_self_reconnecting(attempt: int, _max_attempts: int, seconds_left: float
 			if net != null:
 				net.send_resign()
 			_end_with("Вы сдались."))
-		give_up_btn.custom_minimum_size = Vector2(220, 48)
+		give_up_btn.custom_minimum_size = Vector2(minf(240.0, vp_w - 64.0), 48)
 		vb.add_child(give_up_btn)
 
 	if _self_reconnect_label != null:
@@ -1409,9 +1474,12 @@ func _on_menu() -> void:
 	var vb: VBoxContainer = modal[1]
 	_modal_title(vb, "Пауза и настройки", 20)
 
+	var vp_w: float = get_viewport_rect().size.x
 	if mode == MODE_ONLINE:
 		var warn := Label.new()
 		warn.text = "Выход из онлайн-партии засчитает поражение."
+		warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		warn.custom_minimum_size = Vector2(minf(260.0, vp_w - 64.0), 0)
 		warn.add_theme_color_override("font_color", Color(0.95, 0.45, 0.45))
 		warn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		warn.add_theme_font_size_override("font_size", 13)
@@ -1440,8 +1508,9 @@ func _on_menu() -> void:
 		_play("click")
 		overlay.queue_free())
 
+	var btn_w: float = minf(250.0, vp_w - 64.0)
 	for b in [scale_btn, sfx_btn, exit_btn, resume_btn]:
-		b.custom_minimum_size = Vector2(250, 46)
+		b.custom_minimum_size = Vector2(btn_w, 46)
 		vb.add_child(b)
 
 

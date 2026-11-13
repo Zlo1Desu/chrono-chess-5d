@@ -31,6 +31,7 @@ var _multi_sub_mode_box: BoxContainer
 var _multi_ctrl_box: BoxContainer
 var _multi_col_row: BoxContainer
 var _multi_col_lbl: Label
+var _multi_col_grid: GridContainer
 var _multi_diff_row: BoxContainer
 var _multi_diff_lbl: Label
 
@@ -48,6 +49,11 @@ var _d20_launch_btn_ref: Button = null
 var _d20_preset_box: BoxContainer = null
 var _d20_mode_box: BoxContainer = null
 var _d20_col_row: BoxContainer = null
+var _d20_col_lbl: Label = null
+var _d20_col_grid: GridContainer = null
+var _d20_diff_row: BoxContainer = null
+var _d20_diff_lbl: Label = null
+var _proc_diff_row: BoxContainer = null
 
 # Настройки сетевого создания комнат
 var _net_game_type: String = "5d" # "5d", "multi" или "d20_multi"
@@ -58,6 +64,10 @@ var _net_multi_options_box: Control
 var _net_multi_sub_btns: Array = []
 var _net_multi_color_btns: Array = []
 var _net_multi_blue_btn: Button
+var _net_mode_toggle_box: BoxContainer
+var _net_type_row: BoxContainer
+var _net_multi_col_grid: GridContainer
+var _hp_btn_row: BoxContainer
 var _lobby_info_label: Label
 var _lobby_players_box: VBoxContainer
 var _lobby_start_btn: Button
@@ -67,11 +77,13 @@ var _scroll_container: ScrollContainer
 var _margin_container: MarginContainer
 var _root_container: VBoxContainer
 var _title_label: Label
+var _dock_hb: HBoxContainer
 var _tab_buttons: Array = []
 var _tab_containers: Array = []
 var _mode_box: BoxContainer
 var _diff_row: BoxContainer
 var _diff_lbl: Label
+var _diff_btns_box: BoxContainer
 var _col_row: BoxContainer
 var _col_lbl: Label
 var _var_header: BoxContainer
@@ -123,6 +135,8 @@ var _profile_streaks_lbl: Label
 var _profile_5d_lbl: Label
 var _avatar_piece_btns: Array = []
 var _profile_header_box: BoxContainer
+var _avatar_header_box: BoxContainer
+var _avatar_pieces_grid: GridContainer
 
 # Спокойные фоновые звёзды
 var _stars: Array = []
@@ -340,6 +354,7 @@ func _build_ui() -> void:
 	dock_hb.alignment = BoxContainer.ALIGNMENT_CENTER
 	dock_hb.add_theme_constant_override("separation", 6)
 	bottom_dock.add_child(dock_hb)
+	_dock_hb = dock_hb
 
 	_tab_buttons.append(_create_tab_btn("5D", 0, dock_hb))
 	_tab_buttons.append(_create_tab_btn("Мульти", 1, dock_hb))
@@ -397,8 +412,8 @@ func _adapt_ui(vp_size: Vector2) -> void:
 		dock_sb.content_margin_right = int(right_pad + 4.0)
 		_bottom_dock.add_theme_stylebox_override("panel", dock_sb)
 
-	var top_bar_h: float = 48.0 + top_pad
-	var bottom_dock_h: float = 56.0 + bottom_pad
+	var top_bar_h: float = 56.0 + top_pad
+	var bottom_dock_h: float = 60.0 + bottom_pad
 
 	var avail_w: float = w - (left_pad + right_pad)
 	if avail_w > 720.0:
@@ -414,16 +429,24 @@ func _adapt_ui(vp_size: Vector2) -> void:
 	_root_container.custom_minimum_size.x = 0
 
 	if _title_label != null:
-		_title_label.text = "CHRONO CHESS" if is_phone_portrait else "CHRONO CHESS 5D"
+		if w < 440.0:
+			_title_label.text = "5D CHESS"
+		elif is_phone_portrait:
+			_title_label.text = "CHRONO CHESS"
+		else:
+			_title_label.text = "CHRONO CHESS 5D"
 		_title_label.add_theme_font_size_override("font_size", 14 if is_phone_portrait else 15)
 
 	if _hero_title_lbl != null:
 		_hero_title_lbl.add_theme_font_size_override("font_size", 19 if is_phone_portrait else 22)
 
 	if _profile_chip_ref != null:
-		_profile_chip_ref.visible = (w >= 360.0)
+		_profile_chip_ref.visible = (w >= 390.0)
 	if _scale_btn_ref != null:
-		_scale_btn_ref.visible = (w >= 420.0)
+		_scale_btn_ref.visible = (w >= 480.0)
+
+	if _dock_hb != null:
+		_dock_hb.add_theme_constant_override("separation", 3 if is_phone_portrait else 6)
 
 	# Навигационные вкладки
 	if _tab_buttons.size() >= 6:
@@ -434,9 +457,10 @@ func _adapt_ui(vp_size: Vector2) -> void:
 			_tab_buttons[3].text = "Сеть"
 			_tab_buttons[4].text = "Профиль"
 			_tab_buttons[5].text = "Правила"
+			var tab_fs: int = 10 if w < 420.0 else 11
 			for b in _tab_buttons:
-				b.add_theme_font_size_override("font_size", 11)
-				b.custom_minimum_size.y = 42
+				b.add_theme_font_size_override("font_size", tab_fs)
+				b.custom_minimum_size.y = 44
 		elif is_compact:
 			_tab_buttons[0].text = "5D"
 			_tab_buttons[1].text = "Мульти"
@@ -446,7 +470,7 @@ func _adapt_ui(vp_size: Vector2) -> void:
 			_tab_buttons[5].text = "Правила"
 			for b in _tab_buttons:
 				b.add_theme_font_size_override("font_size", 12)
-				b.custom_minimum_size.y = 42
+				b.custom_minimum_size.y = 44
 		else:
 			_tab_buttons[0].text = "5D Шахматы"
 			_tab_buttons[1].text = "Мульти 14×14"
@@ -461,9 +485,15 @@ func _adapt_ui(vp_size: Vector2) -> void:
 	# Адаптация строк формы
 	if _profile_header_box != null:
 		_profile_header_box.vertical = is_compact
+	if _avatar_header_box != null:
+		_avatar_header_box.vertical = (w < 460.0)
+	if _avatar_pieces_grid != null:
+		_avatar_pieces_grid.columns = 4 if w < 560.0 else 8
 	if _diff_row != null:
 		_diff_row.vertical = is_phone_portrait
 		_diff_lbl.custom_minimum_size.x = 0 if is_phone_portrait else 150
+	if _diff_btns_box != null:
+		_diff_btns_box.vertical = (w < 480.0)
 	if _col_row != null:
 		_col_row.vertical = is_phone_portrait
 		_col_lbl.custom_minimum_size.x = 0 if is_phone_portrait else 150
@@ -482,6 +512,8 @@ func _adapt_ui(vp_size: Vector2) -> void:
 		_multi_col_row.vertical = is_phone_portrait
 		if _multi_col_lbl != null:
 			_multi_col_lbl.custom_minimum_size.x = 0 if is_phone_portrait else 150
+	if _multi_col_grid != null:
+		_multi_col_grid.columns = 2 if w < 520.0 else 4
 	if _multi_diff_row != null:
 		_multi_diff_row.vertical = is_phone_portrait
 		if _multi_diff_lbl != null:
@@ -492,13 +524,31 @@ func _adapt_ui(vp_size: Vector2) -> void:
 		_d20_mode_box.vertical = is_phone_portrait
 	if _d20_col_row != null:
 		_d20_col_row.vertical = is_phone_portrait
+		if _d20_col_lbl != null:
+			_d20_col_lbl.custom_minimum_size.x = 0 if is_phone_portrait else 140
+	if _d20_col_grid != null:
+		_d20_col_grid.columns = 2 if w < 520.0 else 4
+	if _d20_diff_row != null:
+		_d20_diff_row.vertical = is_phone_portrait
+		if _d20_diff_lbl != null:
+			_d20_diff_lbl.custom_minimum_size.x = 0 if is_phone_portrait else 140
+	if _proc_diff_row != null:
+		_proc_diff_row.vertical = is_phone_portrait
+	if _net_mode_toggle_box != null:
+		_net_mode_toggle_box.vertical = is_phone_portrait
+	if _net_type_row != null:
+		_net_type_row.vertical = (w < 460.0)
+	if _net_multi_col_grid != null:
+		_net_multi_col_grid.columns = 2 if w < 520.0 else 4
+	if _hp_btn_row != null:
+		_hp_btn_row.vertical = is_phone_portrait
 
 
 func _create_tab_btn(label: String, tab_idx: int, parent: Control) -> Button:
 	var b := Button.new()
 	b.text = label
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.custom_minimum_size = Vector2(0, 42)
+	b.custom_minimum_size = Vector2(0, 44)
 	b.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -551,8 +601,9 @@ func _switch_tab(idx: int) -> void:
 				sb.set_border_width_all(0)
 				b.add_theme_color_override("font_color", Color(0.58, 0.66, 0.78))
 			sb.set_corner_radius_all(8)
-			sb.content_margin_left = 6
-			sb.content_margin_right = 6
+			var tab_pad: int = 2 if get_viewport_rect().size.x < 520.0 else 6
+			sb.content_margin_left = tab_pad
+			sb.content_margin_right = tab_pad
 			sb.content_margin_top = 6
 			sb.content_margin_bottom = 6
 			b.add_theme_stylebox_override("normal", sb)
@@ -642,10 +693,12 @@ func _build_singleplayer_tab() -> Control:
 	_diff_lbl.custom_minimum_size.x = 150
 	_diff_row.add_child(_diff_lbl)
 
-	var diff_btns_box := HBoxContainer.new()
+	var diff_btns_box := BoxContainer.new()
+	diff_btns_box.vertical = false
 	diff_btns_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	diff_btns_box.add_theme_constant_override("separation", 8)
 	_diff_row.add_child(diff_btns_box)
+	_diff_btns_box = diff_btns_box
 
 	var b_easy := _create_selectable_btn("Новичок", _ai_level == ChessAI.EASY)
 	var b_norm := _create_selectable_btn("Мастер", _ai_level == ChessAI.NORMAL)
@@ -719,7 +772,7 @@ func _build_singleplayer_tab() -> Control:
 
 	_variant_select_btn = OptionButton.new()
 	_variant_select_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_variant_select_btn.custom_minimum_size.y = 42
+	_variant_select_btn.custom_minimum_size.y = 44
 	_variant_select_btn.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	_variant_select_btn.focus_mode = Control.FOCUS_NONE
 	_style_option_button(_variant_select_btn)
@@ -877,10 +930,13 @@ func _build_multi_tab() -> Control:
 	col_row.add_child(col_lbl)
 	_multi_col_lbl = col_lbl
 
-	var col_btns_box := HBoxContainer.new()
+	var col_btns_box := GridContainer.new()
+	col_btns_box.columns = 4
 	col_btns_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col_btns_box.add_theme_constant_override("separation", 8)
+	col_btns_box.add_theme_constant_override("h_separation", 8)
+	col_btns_box.add_theme_constant_override("v_separation", 8)
 	col_row.add_child(col_btns_box)
+	_multi_col_grid = col_btns_box
 
 	var b_w := _create_selectable_btn("Белые", _multi_chess_color == MultiChessState.WHITE)
 	var b_r := _create_selectable_btn("Красные", _multi_chess_color == MultiChessState.RED)
@@ -1080,6 +1136,7 @@ func _build_puzzles_tab() -> Control:
 	var d20_title := Label.new()
 	d20_title.text = "D20 Битва: Кубик судьбы"
 	d20_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	d20_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	d20_title.add_theme_font_size_override("font_size", 18)
 	d20_title.add_theme_color_override("font_color", Color(0.96, 0.82, 0.42))
 	d20_head.add_child(d20_title)
@@ -1139,11 +1196,15 @@ func _build_puzzles_tab() -> Control:
 	var c_lbl := _field_label("Ваша армия")
 	c_lbl.custom_minimum_size.x = 140
 	col_row.add_child(c_lbl)
+	_d20_col_lbl = c_lbl
 
-	var c_btns_box := HBoxContainer.new()
+	var c_btns_box := GridContainer.new()
+	c_btns_box.columns = 4
 	c_btns_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	c_btns_box.add_theme_constant_override("separation", 8)
+	c_btns_box.add_theme_constant_override("h_separation", 8)
+	c_btns_box.add_theme_constant_override("v_separation", 8)
 	col_row.add_child(c_btns_box)
+	_d20_col_grid = c_btns_box
 
 	var db_w := _create_selectable_btn("Белые", _d20_color == MultiChessState.WHITE)
 	var db_r := _create_selectable_btn("Красные", _d20_color == MultiChessState.RED)
@@ -1161,13 +1222,16 @@ func _build_puzzles_tab() -> Control:
 	db_b.pressed.connect(func(): _d20_color = MultiChessState.BLACK; _update_d20_color_btns())
 	db_u.pressed.connect(func(): _d20_color = MultiChessState.BLUE; _update_d20_color_btns())
 
-	var d20_diff_row := HBoxContainer.new()
+	var d20_diff_row := BoxContainer.new()
+	d20_diff_row.vertical = false
 	d20_diff_row.add_theme_constant_override("separation", 10)
 	_d20_bot_options_box.add_child(d20_diff_row)
+	_d20_diff_row = d20_diff_row
 
 	var df_lbl := _field_label("Сложность ботов")
 	df_lbl.custom_minimum_size.x = 140
 	d20_diff_row.add_child(df_lbl)
+	_d20_diff_lbl = df_lbl
 
 	var df_box := HBoxContainer.new()
 	df_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1237,6 +1301,7 @@ func _build_puzzles_tab() -> Control:
 
 	var proc_title := Label.new()
 	proc_title.text = "🎲 Процедурный генератор задач (100% решаемые)"
+	proc_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	proc_title.add_theme_font_size_override("font_size", 17)
 	proc_title.add_theme_color_override("font_color", Color(0.95, 0.96, 0.98))
 	proc_vb.add_child(proc_title)
@@ -1248,9 +1313,11 @@ func _build_puzzles_tab() -> Control:
 	proc_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	proc_vb.add_child(proc_sub)
 
-	var diff_row := HBoxContainer.new()
+	var diff_row := BoxContainer.new()
+	diff_row.vertical = false
 	diff_row.add_theme_constant_override("separation", 8)
 	proc_vb.add_child(diff_row)
+	_proc_diff_row = diff_row
 
 	var proc_diff_desc := Label.new()
 	proc_diff_desc.add_theme_font_size_override("font_size", 12)
@@ -1274,7 +1341,7 @@ func _build_puzzles_tab() -> Control:
 		var d_val: int = int(df["d"])
 		var btn := _create_selectable_btn(str(df["text"]), _proc_diff == d_val)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.custom_minimum_size = Vector2(0, 40)
+		btn.custom_minimum_size = Vector2(0, 44)
 		btn.pressed.connect(func():
 			_proc_diff = d_val
 			_update_proc_diff_ui()
@@ -1405,7 +1472,7 @@ func _refresh_quests_ui() -> void:
 		info.add_child(d_lbl)
 
 		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(0, 36) if is_phone else Vector2(130, 36)
+		btn.custom_minimum_size = Vector2(0, 44) if is_phone else Vector2(130, 44)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL if is_phone else Control.SIZE_SHRINK_END
 		btn.focus_mode = Control.FOCUS_NONE
 
@@ -1498,7 +1565,7 @@ func _refresh_puzzles_ui() -> void:
 			if sfx != null:
 				sfx.play("click")
 			start_puzzle_game.emit(p.duplicate(true)))
-		play_btn.custom_minimum_size = Vector2(0, 36) if is_phone else Vector2(120, 36)
+		play_btn.custom_minimum_size = Vector2(0, 44) if is_phone else Vector2(120, 44)
 		play_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL if is_phone else Control.SIZE_SHRINK_END
 		row.add_child(play_btn)
 
@@ -1510,9 +1577,11 @@ func _build_multiplayer_tab() -> Control:
 	vb.add_theme_constant_override("separation", 14)
 
 	# Переключатель: Онлайн vs Локальная сеть
-	var mode_toggle_hb := HBoxContainer.new()
+	var mode_toggle_hb := BoxContainer.new()
+	mode_toggle_hb.vertical = false
 	mode_toggle_hb.add_theme_constant_override("separation", 8)
 	vb.add_child(mode_toggle_hb)
+	_net_mode_toggle_box = mode_toggle_hb
 
 	var btn_online := _create_selectable_btn("Онлайн-сервер", _multi_online_mode)
 	var btn_lan := _create_selectable_btn("Локальная сеть (Wi-Fi)", not _multi_online_mode)
@@ -1523,7 +1592,7 @@ func _build_multiplayer_tab() -> Control:
 	_multi_mode_btns = [btn_online, btn_lan]
 
 	var server_cfg_btn := _action_btn("Сервер", _show_server_settings_dialog)
-	server_cfg_btn.custom_minimum_size = Vector2(100, 42)
+	server_cfg_btn.custom_minimum_size = Vector2(100, 44)
 	mode_toggle_hb.add_child(server_cfg_btn)
 
 	btn_online.pressed.connect(func():
@@ -1550,6 +1619,7 @@ func _build_multiplayer_tab() -> Control:
 
 		var r_title := Label.new()
 		r_title.text = "Незавершённый матч (код: %s)" % Profile.active_match_code
+		r_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		r_title.add_theme_font_size_override("font_size", 15)
 		r_title.add_theme_color_override("font_color", Color(0.96, 0.82, 0.38))
 		r_vb.add_child(r_title)
@@ -1557,6 +1627,7 @@ func _build_multiplayer_tab() -> Control:
 		var r_sub := Label.new()
 		var opp_name: String = Profile.active_match_opponent if Profile.active_match_opponent != "" else "Соперник"
 		r_sub.text = "%s · %s" % [opp_name, Profile.active_match_variant]
+		r_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		r_sub.add_theme_font_size_override("font_size", 13)
 		r_sub.add_theme_color_override("font_color", Color(0.75, 0.80, 0.88))
 		r_vb.add_child(r_sub)
@@ -1575,7 +1646,7 @@ func _build_multiplayer_tab() -> Control:
 		var dismiss_btn := _action_btn("Закрыть", func():
 			Profile.clear_active_match()
 			recon_card.queue_free())
-		dismiss_btn.custom_minimum_size = Vector2(110, 40)
+		dismiss_btn.custom_minimum_size = Vector2(110, 44)
 		r_btn_row.add_child(dismiss_btn)
 
 	# 1. Вход по коду комнаты
@@ -1597,12 +1668,12 @@ func _build_multiplayer_tab() -> Control:
 	_room_code_input = LineEdit.new()
 	_room_code_input.placeholder_text = "Код комнаты (например, 7K9F)"
 	_room_code_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_room_code_input.custom_minimum_size.y = 42
+	_room_code_input.custom_minimum_size.y = 44
 	_style_line_edit(_room_code_input)
 	_code_row.add_child(_room_code_input)
 
 	var join_code_btn := _action_btn("Войти", _on_join_code_pressed)
-	join_code_btn.custom_minimum_size = Vector2(140, 42)
+	join_code_btn.custom_minimum_size = Vector2(140, 44)
 	_code_row.add_child(join_code_btn)
 
 	# 2. Создание комнаты и лобби
@@ -1616,9 +1687,11 @@ func _build_multiplayer_tab() -> Control:
 
 	host_vb.add_child(_field_label("Создать комнату (до 2 игроков)"))
 
-	var type_row := HBoxContainer.new()
+	var type_row := BoxContainer.new()
+	type_row.vertical = false
 	type_row.add_theme_constant_override("separation", 8)
 	host_vb.add_child(type_row)
+	_net_type_row = type_row
 
 	var btn_type_5d := _create_selectable_btn("5D Хроно", _net_game_type == "5d")
 	var btn_type_multi := _create_selectable_btn("Мульти 14×14", _net_game_type == "multi")
@@ -1652,9 +1725,13 @@ func _build_multiplayer_tab() -> Control:
 
 	_net_multi_options_box.add_child(_field_label("Ваш цвет"))
 
-	var m_col_row := HBoxContainer.new()
-	m_col_row.add_theme_constant_override("separation", 8)
+	var m_col_row := GridContainer.new()
+	m_col_row.columns = 4
+	m_col_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	m_col_row.add_theme_constant_override("h_separation", 8)
+	m_col_row.add_theme_constant_override("v_separation", 8)
 	_net_multi_options_box.add_child(m_col_row)
+	_net_multi_col_grid = m_col_row
 
 	var m_col_w := _create_selectable_btn("Белые", _net_multi_color == MultiChessState.WHITE)
 	var m_col_r := _create_selectable_btn("Красные", _net_multi_color == MultiChessState.RED)
@@ -1722,12 +1799,12 @@ func _build_multiplayer_tab() -> Control:
 	_room_name_input.text = "Комната " + Profile.player_name
 	_room_name_input.placeholder_text = "Название комнаты"
 	_room_name_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_room_name_input.custom_minimum_size.y = 42
+	_room_name_input.custom_minimum_size.y = 44
 	_style_line_edit(_room_name_input)
 	_name_row.add_child(_room_name_input)
 
 	var create_btn := _action_btn("Создать комнату", _on_create_host_pressed)
-	create_btn.custom_minimum_size = Vector2(160, 42)
+	create_btn.custom_minimum_size = Vector2(160, 44)
 	_name_row.add_child(create_btn)
 
 	# Панель активного лобби комнаты
@@ -1741,11 +1818,13 @@ func _build_multiplayer_tab() -> Control:
 	_host_panel.add_child(hp_vb)
 
 	_host_code_label = Label.new()
+	_host_code_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_host_code_label.add_theme_font_size_override("font_size", 20)
 	_host_code_label.add_theme_color_override("font_color", Color(0.96, 0.84, 0.38))
 	hp_vb.add_child(_host_code_label)
 
 	_lobby_info_label = Label.new()
+	_lobby_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_lobby_info_label.add_theme_font_size_override("font_size", 13)
 	_lobby_info_label.add_theme_color_override("font_color", Color(0.68, 0.76, 0.88))
 	hp_vb.add_child(_lobby_info_label)
@@ -1754,9 +1833,11 @@ func _build_multiplayer_tab() -> Control:
 	_lobby_players_box.add_theme_constant_override("separation", 6)
 	hp_vb.add_child(_lobby_players_box)
 
-	var hp_btn_row := HBoxContainer.new()
+	var hp_btn_row := BoxContainer.new()
+	hp_btn_row.vertical = false
 	hp_btn_row.add_theme_constant_override("separation", 8)
 	hp_vb.add_child(hp_btn_row)
+	_hp_btn_row = hp_btn_row
 
 	var copy_code_btn := _action_btn("Скопировать код", func():
 		if net != null and net.room_code != "":
@@ -1787,6 +1868,7 @@ func _build_multiplayer_tab() -> Control:
 	hp_btn_row.add_child(cancel_host_btn)
 
 	_net_status_label = Label.new()
+	_net_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_net_status_label.add_theme_font_size_override("font_size", 13)
 	_net_status_label.add_theme_color_override("font_color", Color(0.48, 0.78, 0.98))
 	vb.add_child(_net_status_label)
@@ -1814,7 +1896,7 @@ func _build_multiplayer_tab() -> Control:
 			else:
 				net.start_lan_discovery()
 			_net_status_label.text = "Обновление списка...")
-	refresh_btn.custom_minimum_size = Vector2(110, 36)
+	refresh_btn.custom_minimum_size = Vector2(110, 44)
 	br_header.add_child(refresh_btn)
 
 	_server_list_container = VBoxContainer.new()
@@ -1823,6 +1905,7 @@ func _build_multiplayer_tab() -> Control:
 
 	_no_servers_label = Label.new()
 	_no_servers_label.text = "Нет открытых комнат. Создайте свою или подключитесь по коду."
+	_no_servers_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_no_servers_label.add_theme_font_size_override("font_size", 13)
 	_no_servers_label.add_theme_color_override("font_color", Color(0.50, 0.58, 0.70))
 	browser_vb.add_child(_no_servers_label)
@@ -1855,7 +1938,7 @@ func _show_server_settings_dialog() -> void:
 
 	var input := LineEdit.new()
 	input.text = net.server_url if net != null else Net.DEFAULT_SERVER_URL
-	input.custom_minimum_size = Vector2(360, 40)
+	input.custom_minimum_size = Vector2(minf(360.0, get_viewport_rect().size.x - 64.0), 44)
 	vb.add_child(input)
 
 	dlg.confirmed.connect(func():
@@ -1955,11 +2038,13 @@ func _on_server_list_updated(servers: Array) -> void:
 
 		var s_name := Label.new()
 		s_name.text = str(s.get("name", "Игровая комната"))
+		s_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		s_name.add_theme_font_size_override("font_size", 15)
 		s_name.add_theme_color_override("font_color", Color(0.94, 0.95, 0.98))
 		info.add_child(s_name)
 
 		var s_sub := Label.new()
+		s_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		var code: String = str(s.get("code", ""))
 		var g_type: String = str(s.get("game_type", "5d"))
 		var variant: String = str(s.get("variant", "standard"))
@@ -1991,7 +2076,7 @@ func _on_server_list_updated(servers: Array) -> void:
 					_net_status_label.text = "Подключение...")
 		join_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL if is_compact else Control.SIZE_SHRINK_END
 		if not is_compact:
-			join_btn.custom_minimum_size = Vector2(130, 38)
+			join_btn.custom_minimum_size = Vector2(130, 44)
 		row.add_child(join_btn)
 
 
@@ -2035,7 +2120,7 @@ func _build_profile_tab() -> Control:
 	_profile_name_edit.text = Profile.player_name
 	_profile_name_edit.placeholder_text = "Имя игрока"
 	_profile_name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_profile_name_edit.custom_minimum_size.y = 38
+	_profile_name_edit.custom_minimum_size.y = 44
 	_profile_name_edit.add_theme_font_size_override("font_size", 15)
 	_style_line_edit(_profile_name_edit)
 	_profile_name_edit.text_changed.connect(func(new_text: String):
@@ -2064,16 +2149,19 @@ func _build_profile_tab() -> Control:
 
 	# Блок статистики внутри карточки профиля
 	_profile_stats_lbl = Label.new()
+	_profile_stats_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_profile_stats_lbl.add_theme_font_size_override("font_size", 13)
 	_profile_stats_lbl.add_theme_color_override("font_color", Color(0.84, 0.88, 0.94))
 	id_main_vb.add_child(_profile_stats_lbl)
 
 	_profile_winrate_lbl = Label.new()
+	_profile_winrate_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_profile_winrate_lbl.add_theme_font_size_override("font_size", 13)
 	_profile_winrate_lbl.add_theme_color_override("font_color", Color(0.58, 0.86, 0.70))
 	id_main_vb.add_child(_profile_winrate_lbl)
 
 	_profile_streaks_lbl = Label.new()
+	_profile_streaks_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_profile_streaks_lbl.add_theme_font_size_override("font_size", 13)
 	_profile_streaks_lbl.add_theme_color_override("font_color", Color(0.58, 0.66, 0.78))
 	id_main_vb.add_child(_profile_streaks_lbl)
@@ -2093,20 +2181,26 @@ func _build_profile_tab() -> Control:
 	av_vb.add_theme_constant_override("separation", 10)
 	avatar_card.add_child(av_vb)
 
-	var av_header := HBoxContainer.new()
+	var av_header := BoxContainer.new()
+	av_header.vertical = false
 	av_header.add_theme_constant_override("separation", 8)
 	av_vb.add_child(av_header)
+	_avatar_header_box = av_header
 
 	var av_title := _field_label("Фигура профиля")
 	av_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	av_header.add_child(av_title)
 
+	var av_col_hb := HBoxContainer.new()
+	av_col_hb.add_theme_constant_override("separation", 8)
+	av_header.add_child(av_col_hb)
+
 	var col_btn_w := _create_selectable_btn("Светлая", not Profile.avatar_is_black)
 	var col_btn_b := _create_selectable_btn("Тёмная", Profile.avatar_is_black)
-	col_btn_w.custom_minimum_size = Vector2(96, 36)
-	col_btn_b.custom_minimum_size = Vector2(96, 36)
-	av_header.add_child(col_btn_w)
-	av_header.add_child(col_btn_b)
+	col_btn_w.custom_minimum_size = Vector2(90, 44)
+	col_btn_b.custom_minimum_size = Vector2(90, 44)
+	av_col_hb.add_child(col_btn_w)
+	av_col_hb.add_child(col_btn_b)
 
 	col_btn_w.pressed.connect(func():
 		Profile.set_avatar(Profile.avatar_piece, false)
@@ -2123,10 +2217,13 @@ func _build_profile_tab() -> Control:
 		if sfx != null:
 			sfx.play("click"))
 
-	var pieces_box := HBoxContainer.new()
-	pieces_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	pieces_box.add_theme_constant_override("separation", 8)
+	var pieces_box := GridContainer.new()
+	pieces_box.columns = 8
+	pieces_box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	pieces_box.add_theme_constant_override("h_separation", 8)
+	pieces_box.add_theme_constant_override("v_separation", 8)
 	av_vb.add_child(pieces_box)
+	_avatar_pieces_grid = pieces_box
 
 	var piece_types := [
 		GameState.KING, GameState.QUEEN, GameState.DRAGON, GameState.UNICORN,
@@ -2164,7 +2261,7 @@ func _build_profile_tab() -> Control:
 
 	# Сброс статистики
 	var reset_btn := _action_btn("Сбросить статистику", _on_reset_stats_pressed)
-	reset_btn.custom_minimum_size = Vector2(200, 38)
+	reset_btn.custom_minimum_size = Vector2(200, 44)
 	reset_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	vb.add_child(reset_btn)
 
@@ -2252,7 +2349,8 @@ func _refresh_skins_ui() -> void:
 		row.add_theme_constant_override("separation", 8 if is_phone else 14)
 		card.add_child(row)
 
-		var top_part := HBoxContainer.new()
+		var top_part := BoxContainer.new()
+		top_part.vertical = get_viewport_rect().size.x < 520.0
 		top_part.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		top_part.add_theme_constant_override("separation", 10)
 		row.add_child(top_part)
@@ -2296,7 +2394,7 @@ func _refresh_skins_ui() -> void:
 		info.add_child(d_lbl)
 
 		var act_btn := Button.new()
-		act_btn.custom_minimum_size = Vector2(0, 36) if is_phone else Vector2(130, 36)
+		act_btn.custom_minimum_size = Vector2(0, 44) if is_phone else Vector2(130, 44)
 		act_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL if is_phone else Control.SIZE_SHRINK_END
 		act_btn.focus_mode = Control.FOCUS_NONE
 
@@ -2498,7 +2596,7 @@ func _create_selectable_btn(text: String, is_selected: bool) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.custom_minimum_size = Vector2(110, 42)
+	b.custom_minimum_size = Vector2(0, 44)
 	b.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -2570,7 +2668,7 @@ func _set_army_btn_style(b: Button, active: bool, theme_col: Color, active_bg: C
 func _action_btn(text: String, cb: Callable = Callable()) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(130, 42)
+	b.custom_minimum_size = Vector2(130, 44)
 	b.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -2608,7 +2706,7 @@ func _action_btn(text: String, cb: Callable = Callable()) -> Button:
 func _pill_action_btn(text: String, cb: Callable = Callable(), min_w: float = 0.0) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(min_w, 32)
+	b.custom_minimum_size = Vector2(min_w, 44)
 	b.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -2645,7 +2743,7 @@ func _pill_action_btn(text: String, cb: Callable = Callable(), min_w: float = 0.
 func _icon_action_btn(icon_text: String, cb: Callable = Callable()) -> Button:
 	var b := Button.new()
 	b.text = icon_text
-	b.custom_minimum_size = Vector2(0, 32)
+	b.custom_minimum_size = Vector2(0, 44)
 	b.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_filter = Control.MOUSE_FILTER_STOP

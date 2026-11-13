@@ -7,6 +7,7 @@ const RATE := 44100
 var _players: Array = []
 var _streams: Dictionary = {}
 var _ambient_player: AudioStreamPlayer
+var _next_player_idx: int = 0
 var enabled: bool = true
 var _ambient_active: bool = false
 
@@ -32,7 +33,7 @@ func start_ambient() -> void:
 		return
 	if not _ambient_player.playing:
 		_ambient_player.stream = _streams["ambient"]
-		_ambient_player.volume_db = -12.0
+		_ambient_player.volume_db = -10.5
 		_ambient_player.play()
 
 
@@ -53,10 +54,12 @@ func play(id: String) -> void:
 			p.stream = _streams[id]
 			p.play()
 			return
-	# Если все плееры заняты, переиспользуем первый
+	# Если все плееры заняты, переиспользуем по кругу
 	if not _players.is_empty():
-		_players[0].stream = _streams[id]
-		_players[0].play()
+		var idx: int = _next_player_idx % _players.size()
+		_next_player_idx = (idx + 1) % _players.size()
+		_players[idx].stream = _streams[id]
+		_players[idx].play()
 
 
 func _trigger_haptic(id: String) -> void:
@@ -65,18 +68,24 @@ func _trigger_haptic(id: String) -> void:
 			Input.vibrate_handheld(12)
 		"move":
 			Input.vibrate_handheld(18)
+		"undo":
+			Input.vibrate_handheld(20)
+		"dice":
+			Input.vibrate_handheld(22)
+		"submit":
+			Input.vibrate_handheld(28)
 		"capture":
 			Input.vibrate_handheld(35)
+		"block", "error":
+			Input.vibrate_handheld(40)
 		"travel":
 			Input.vibrate_handheld(50)
+		"check":
+			Input.vibrate_handheld(65)
 		"branch":
 			Input.vibrate_handheld(75)
 		"crit":
 			Input.vibrate_handheld(80)
-		"check":
-			Input.vibrate_handheld(65)
-		"block", "error":
-			Input.vibrate_handheld(40)
 		"win":
 			Input.vibrate_handheld(100)
 
@@ -115,6 +124,25 @@ func _generate_all() -> void:
 
 
 func _make(samples: PackedFloat32Array) -> AudioStreamWAV:
+	_apply_tail_fade(samples, 0.008)
+	return _encode_wav(samples, false)
+
+
+func _make_looping(samples: PackedFloat32Array) -> AudioStreamWAV:
+	return _encode_wav(samples, true)
+
+
+func _apply_tail_fade(samples: PackedFloat32Array, fade_sec: float) -> void:
+	var fade_samples: int = mini(samples.size(), int(fade_sec * RATE))
+	if fade_samples <= 1:
+		return
+	var start_idx: int = samples.size() - fade_samples
+	for i in fade_samples:
+		var k: float = 1.0 - float(i) / float(fade_samples - 1)
+		samples[start_idx + i] *= k
+
+
+func _encode_wav(samples: PackedFloat32Array, looping: bool) -> AudioStreamWAV:
 	var data := PackedByteArray()
 	data.resize(samples.size() * 2)
 	for i in samples.size():
@@ -125,14 +153,10 @@ func _make(samples: PackedFloat32Array) -> AudioStreamWAV:
 	s.mix_rate = RATE
 	s.stereo = false
 	s.data = data
-	return s
-
-
-func _make_looping(samples: PackedFloat32Array) -> AudioStreamWAV:
-	var s := _make(samples)
-	s.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	s.loop_begin = 0
-	s.loop_end = samples.size()
+	if looping:
+		s.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		s.loop_begin = 0
+		s.loop_end = samples.size()
 	return s
 
 
@@ -202,7 +226,7 @@ func _synth_click() -> AudioStreamWAV:
 		var t: float = float(i) / RATE
 		var env: float = exp(-t * 140.0)
 		var v: float = sin(TAU * 1250.0 * t) * 0.7 + sin(TAU * 2500.0 * t) * 0.3
-		buf[i] = v * env * 0.4
+		buf[i] = v * env * 0.45
 	return _make(buf)
 
 
@@ -218,7 +242,7 @@ func _synth_move() -> AudioStreamWAV:
 		var click: float = (rng.randf() * 2.0 - 1.0) * exp(-t * 900.0) * 0.6
 		var f: float = lerpf(240.0, 120.0, minf(1.0, t * 25.0))
 		var body: float = (sin(TAU * f * t) * 0.8 + sin(TAU * (f * 1.8) * t) * 0.2) * exp(-t * 55.0)
-		buf[i] = (click + body) * 0.75
+		buf[i] = (click + body) * 0.72
 	return _make(buf)
 
 
@@ -235,7 +259,7 @@ func _synth_capture() -> AudioStreamWAV:
 		var sub: float = sin(TAU * f_sub * t) * exp(-t * 30.0) * 0.8
 		var snap: float = (rng.randf() * 2.0 - 1.0) * exp(-t * 400.0) * 0.7
 		var ring: float = sin(TAU * 680.0 * t) * exp(-t * 35.0) * 0.35
-		buf[i] = (sub + snap + ring) * 0.8
+		buf[i] = (sub + snap + ring) * 0.62
 	return _make(buf)
 
 
@@ -265,7 +289,7 @@ func _synth_travel() -> AudioStreamWAV:
 			var sk: float = (k - 0.3) / 0.7
 			shimmer = (sin(TAU * 1760.0 * t) * 0.2 + sin(TAU * 2640.0 * t) * 0.15) * sin(PI * sk)
 
-		buf[i] = (wave * 0.65 + sub + shimmer) * env * 0.85
+		buf[i] = (wave * 0.65 + sub + shimmer) * env * 0.65
 	return _make(buf)
 
 
@@ -282,7 +306,7 @@ func _synth_branch() -> AudioStreamWAV:
 		var c1: float = sin(TAU * 659.25 * t) * exp(-t * 9.0) * 0.35
 		var c2: float = sin(TAU * 987.77 * t) * exp(-t * 11.0) * 0.3
 		var c3: float = sin(TAU * 1318.5 * t) * exp(-t * 14.0) * 0.25
-		buf[i] = (boom + c1 + c2 + c3) * 0.8
+		buf[i] = (boom + c1 + c2 + c3) * 0.55
 	return _make(buf)
 
 
@@ -299,7 +323,7 @@ func _synth_submit() -> AudioStreamWAV:
 		if t > 0.08:
 			var t2: float = t - 0.08
 			p2 = (sin(TAU * 880.0 * t2) * 0.6 + sin(TAU * 1760.0 * t2) * 0.25) * exp(-t2 * 20.0)
-		buf[i] = (p1 + p2) * 0.75
+		buf[i] = (p1 + p2) * 0.78
 	return _make(buf)
 
 
@@ -313,8 +337,8 @@ func _synth_error() -> AudioStreamWAV:
 		var t: float = float(i) / RATE
 		var tone: float = sin(TAU * 130.81 * t) * 0.7 + sin(TAU * 123.47 * t) * 0.5
 		var buzz: float = fposmod(t * 130.81, 1.0) * 2.0 - 1.0
-		var env: float = exp(-t * 22.0)
-		buf[i] = (tone * 0.6 + buzz * 0.25) * env * 0.7
+		var env: float = exp(-t * 22.0) * minf(1.0, t * 500.0)
+		buf[i] = (tone * 0.6 + buzz * 0.25) * env * 0.80
 	return _make(buf)
 
 
@@ -327,7 +351,7 @@ func _synth_check() -> AudioStreamWAV:
 	for i in n:
 		var t: float = float(i) / RATE
 		var p1: float = (sin(TAU * 440.0 * t) + sin(TAU * 622.25 * t) * 0.8) * exp(-fmod(t, 0.15) * 20.0)
-		buf[i] = p1 * 0.55
+		buf[i] = p1 * 0.48
 	return _make(buf)
 
 
@@ -344,7 +368,7 @@ func _synth_undo() -> AudioStreamWAV:
 		var f: float = lerpf(900.0, 160.0, k * k)
 		phase += TAU * f / RATE
 		var env: float = pow(k, 0.6) * (1.0 - pow(k, 8.0))
-		buf[i] = sin(phase) * env * 0.65
+		buf[i] = sin(phase) * env * 0.44
 	return _make(buf)
 
 
@@ -362,7 +386,7 @@ func _synth_win() -> AudioStreamWAV:
 			var t: float = float(i) / RATE - delay
 			if t > 0.0:
 				var env: float = exp(-t * 4.5) * minf(1.0, t * 250.0)
-				buf[i] += sin(TAU * f * t) * env * 0.22
+				buf[i] += sin(TAU * f * t) * env * 0.26
 	return _make(buf)
 
 
@@ -381,7 +405,7 @@ func _synth_dice() -> AudioStreamWAV:
 			if t > 0.0 and t < 0.06:
 				var click: float = (rng.randf() * 2.0 - 1.0) * exp(-t * 800.0) * 0.45
 				var wood: float = sin(TAU * 340.0 * t) * exp(-t * 90.0) * 0.35
-				buf[i] += (click + wood) * 0.7
+				buf[i] += (click + wood) * 1.05
 	return _make(buf)
 
 
@@ -400,7 +424,7 @@ func _synth_crit() -> AudioStreamWAV:
 			if t > 0.0:
 				var env: float = exp(-t * 5.0) * minf(1.0, t * 400.0)
 				var bell: float = sin(TAU * f * t) * 0.6 + sin(TAU * (f * 2.76) * t) * 0.25
-				buf[i] += bell * env * 0.3
+				buf[i] += bell * env * 0.40
 	return _make(buf)
 
 
@@ -417,5 +441,5 @@ func _synth_block() -> AudioStreamWAV:
 		var clank: float = (sin(TAU * 1840.0 * t) * 0.45 + sin(TAU * 2920.0 * t) * 0.35 + sin(TAU * 4200.0 * t) * 0.2) * exp(-t * 22.0)
 		var snap: float = (rng.randf() * 2.0 - 1.0) * exp(-t * 600.0) * 0.4
 		var low_thud: float = sin(TAU * 160.0 * t) * exp(-t * 35.0) * 0.5
-		buf[i] = (clank + snap + low_thud) * 0.75
+		buf[i] = (clank + snap + low_thud) * 0.65
 	return _make(buf)

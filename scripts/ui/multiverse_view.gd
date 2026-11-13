@@ -7,6 +7,7 @@ signal user_dragged_view
 signal camera_transformed
 
 const SQ := 48.0
+const DRAG_THRESHOLD := 16.0
 
 # Цветовая палитра
 const COL_LIGHT := Color(0.88, 0.91, 0.96)
@@ -45,8 +46,10 @@ var zoom: float = 1.0
 var offset: Vector2 = Vector2.ZERO
 
 var _touches: Dictionary = {}
-var _drag_dist: float = 0.0
+var _touch_start_pos: Vector2 = Vector2.ZERO
+var _is_dragging: bool = false
 var _pinch_dist: float = 0.0
+var _prev_pinch_mid: Vector2 = Vector2.ZERO
 var _stars: Array = []
 var _font: Font
 var _cam_tween: Tween
@@ -137,10 +140,11 @@ func _process(delta: float) -> void:
 		_floating_texts = rem_t
 
 	# Инерционное скольжение камеры после свайпа
-	if _touches.is_empty() and _pan_velocity.length_squared() > 10.0:
+	if _touches.is_empty() and _pan_velocity.length_squared() > 4.0:
 		offset += _pan_velocity * delta
-		_pan_velocity = _pan_velocity.move_toward(Vector2.ZERO, delta * 3200.0)
-		_pan_velocity *= pow(0.88, delta * 60.0)
+		_pan_velocity *= exp(-7.5 * delta)
+		if _pan_velocity.length_squared() <= 4.0:
+			_pan_velocity = Vector2.ZERO
 		camera_transformed.emit()
 
 	# Синхронизация миникарты в реальном времени при плавной анимации камеры
@@ -148,6 +152,13 @@ func _process(delta: float) -> void:
 		camera_transformed.emit()
 
 	queue_redraw()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_touches.clear()
+		_is_dragging = false
+		_pan_velocity = Vector2.ZERO
 
 
 func _on_view_resized() -> void:
@@ -168,7 +179,8 @@ func animate_move(from: Vector4i, to: Vector4i, piece: int, is_temporal: bool = 
 		"is_temporal": is_temporal,
 		"is_capture": is_capture,
 	}
-	var tw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	var ease_type := Tween.EASE_IN_OUT if is_temporal else Tween.EASE_OUT
+	var tw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(ease_type)
 	tw.tween_property(self, "_moving_progress", 1.0, dur).from(0.0)
 	await tw.finished
 	var target_center: Vector2 = square_rect(to).get_center()
@@ -389,9 +401,14 @@ func _move_camera(r: Rect2, min_zoom: float, max_zoom: float, smooth: bool) -> v
 	if smooth and is_inside_tree():
 		if _cam_tween:
 			_cam_tween.kill()
-		_cam_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		_cam_tween.tween_property(self, "zoom", target_zoom, 0.40)
-		_cam_tween.tween_property(self, "offset", size / 2.0 - target_world * target_zoom, 0.40)
+		var start_zoom: float = zoom
+		var start_world: Vector2 = screen_to_world(size / 2.0)
+		_cam_tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		_cam_tween.tween_method(func(k: float):
+			zoom = lerpf(start_zoom, target_zoom, k)
+			var cur_world: Vector2 = start_world.lerp(target_world, k)
+			offset = size / 2.0 - cur_world * zoom
+		, 0.0, 1.0, 0.40)
 		_cam_tween.finished.connect(func(): camera_transformed.emit())
 	else:
 		zoom = target_zoom
@@ -412,19 +429,24 @@ func _gui_input(event: InputEvent) -> void:
 			_pan_velocity = Vector2.ZERO
 			_touches[e.index] = e.position
 			if _touches.size() == 1:
-				_drag_dist = 0.0
+				_touch_start_pos = e.position
+				_is_dragging = false
 			elif _touches.size() >= 2:
 				if _cam_tween:
 					_cam_tween.kill()
+				_is_dragging = true
 				_pinch_dist = _pinch_span()
+				_prev_pinch_mid = _pinch_mid()
 		else:
-			if _touches.size() == 1 and _drag_dist < 26.0:
+			if _touches.size() == 1 and not _is_dragging:
 				_tap(e.position)
 			_touches.erase(e.index)
 			# Один палец остался после щипка — не считаем его последующее отпускание тапом.
 			if _touches.size() == 1:
-				_drag_dist = 999.0
+				_is_dragging = true
 				_pan_velocity = Vector2.ZERO
+			elif _touches.is_empty():
+				_is_dragging = false
 		accept_event()
 	elif event is InputEventScreenDrag:
 		var e: InputEventScreenDrag = event
@@ -433,20 +455,30 @@ func _gui_input(event: InputEvent) -> void:
 				_cam_tween.kill()
 			_touches[e.index] = e.position
 			var d: float = _pinch_span()
-			if _pinch_dist > 0.0 and d > 0.0:
-				_zoom_at(_pinch_mid(), d / _pinch_dist)
+			var mid: Vector2 = _pinch_mid()
+			offset += mid - _prev_pinch_mid
+			if _pinch_dist > 10.0 and d > 10.0:
+				_zoom_at(mid, d / _pinch_dist)
 			_pinch_dist = d
-			_drag_dist = 999.0
+			_prev_pinch_mid = mid
+			_is_dragging = true
 			_pan_velocity = Vector2.ZERO
+			user_dragged_view.emit()
+			camera_transformed.emit()
 		else:
 			_touches[e.index] = e.position
-			_drag_dist += e.relative.length()
+			if not _is_dragging and e.position.distance_to(_touch_start_pos) >= DRAG_THRESHOLD:
+				_is_dragging = true
 			# Реальное намеренное перемещение камеры пальцем (защита от случайного микродвижения при тапе)
-			if _drag_dist >= 32.0:
+			if _is_dragging:
 				if _cam_tween:
 					_cam_tween.kill()
 				offset += e.relative
-				_pan_velocity = e.velocity
+				var v: Vector2 = e.velocity.limit_length(3500.0)
+				if v.length_squared() > 1.0:
+					_pan_velocity = _pan_velocity.lerp(v, 0.55)
+				else:
+					_pan_velocity *= 0.85
 				user_dragged_view.emit()
 				camera_transformed.emit()
 				queue_redraw()
@@ -1059,7 +1091,9 @@ func _draw_temporal_travel(from_r: Rect2, to_r: Rect2, progress: float, p_code: 
 		draw_circle(s_pt, 3.5, Color(1, 1, 1, 0.95))
 		draw_circle(s_pt, 6.0, Color(0.35, 0.92, 1.0, 0.45))
 
-	# Пространственная тень
-	draw_circle(cur_pos + Vector2(4.0, 10.0), SQ * 0.36, Color(0, 0, 0, 0.4))
+	# Пространственная тень и квантовый масштаб фигуры в полёте
+	var warp_scale: float = 1.0 + 0.14 * alpha_flow
+	var draw_sz := Vector2(SQ * warp_scale, SQ * warp_scale)
+	draw_circle(cur_pos + Vector2(4.0, 10.0), SQ * 0.36 * warp_scale, Color(0, 0, 0, 0.4))
 	# Отрисовка фигуры
-	PieceArt.draw_piece(self, p_code, Rect2(cur_pos - Vector2(SQ, SQ) * 0.5, Vector2(SQ, SQ)).grow(-SQ * 0.04), 1.0, get_skin_for_piece(p_code))
+	PieceArt.draw_piece(self, p_code, Rect2(cur_pos - draw_sz * 0.5, draw_sz).grow(-SQ * 0.04), 1.0, get_skin_for_piece(p_code))

@@ -102,7 +102,7 @@ func _find_board_at_minimap(pos: Vector2) -> Vector2i:
 	for l in state.timelines:
 		var s: int = state.start_t(l)
 		var e: int = state.end_t(l)
-		var row: int = max_l_val - l if not view.flip else l - min_l_val
+		var row: int = (max_l_val - l) if view.flip else (l - min_l_val)
 		for t in range(s, e + 1):
 			var col: int = t - min_t_val
 			var bx := pad + col * cell_w + cell_w * 0.5
@@ -119,7 +119,8 @@ func _draw() -> void:
 	# Фоновая плашка
 	var panel_r := Rect2(Vector2.ZERO, size)
 	draw_rect(panel_r, BG_COLOR)
-	draw_rect(panel_r, BORDER_COLOR, false, 1.5)
+	var border_col := Color(0.38, 0.72, 0.98, 0.95) if is_dragging else BORDER_COLOR
+	draw_rect(panel_r, border_col, false, 2.0 if is_dragging else 1.5)
 
 	if view == null or view.state == null:
 		return
@@ -147,16 +148,25 @@ func _draw() -> void:
 	var cell_w := draw_w / float(t_span)
 	var cell_h := draw_h / float(l_span)
 
-	var board_dot_w := clampf(cell_w * 0.72, 3.0, 16.0)
-	var board_dot_h := clampf(cell_h * 0.72, 3.0, 16.0)
+	var board_dot_w := clampf(cell_w * 0.72, 4.0, 22.0)
+	var board_dot_h := clampf(cell_h * 0.72, 4.0, 22.0)
 
 	var mand_lines: Array = state.mandatory_timelines()
+	var threat_boards: Dictionary = {}
+	for th in view.threats:
+		if th is Dictionary:
+			for k in ["f", "t"]:
+				if th.has(k) and th[k] is Vector4i:
+					var tv: Vector4i = th[k]
+					threat_boards[Vector2i(tv.w, tv.z)] = true
+	var has_sel: bool = view.selected.x >= 0
+	var sel_board := Vector2i(view.selected.w, view.selected.z)
 
 	# Отрисовка линий времени
 	for l in state.timelines:
 		var s: int = state.start_t(l)
 		var e: int = state.end_t(l)
-		var row: int = max_l_val - l if not view.flip else l - min_l_val
+		var row: int = (max_l_val - l) if view.flip else (l - min_l_val)
 		var y_coord: float = pad + row * cell_h + cell_h * 0.5
 
 		var x_start: float = pad + (s - min_t_val) * cell_w + cell_w * 0.5
@@ -172,6 +182,7 @@ func _draw() -> void:
 			var dot_r := Rect2(Vector2(x_coord - board_dot_w * 0.5, y_coord - board_dot_h * 0.5), Vector2(board_dot_w, board_dot_h))
 
 			var is_mand: bool = (t == e) and mand_lines.has(l)
+			var is_threat: bool = threat_boards.has(Vector2i(l, t))
 			var b_color: Color
 			if is_mand:
 				b_color = Color(1.0, 0.8, 0.2, 0.95)
@@ -181,6 +192,10 @@ func _draw() -> void:
 				b_color = Color(0.2, 0.22, 0.28, 0.5)
 
 			draw_rect(dot_r, b_color)
+			if is_threat:
+				draw_rect(dot_r.grow(1.0), Color(0.98, 0.32, 0.32, 0.92), false, 1.5)
+			if has_sel and sel_board == Vector2i(l, t):
+				draw_rect(dot_r.grow(1.5), Color(1.0, 1.0, 1.0, 0.95), false, 1.5)
 
 	# Линия Настоящего (Present)
 	var pt: int = state.present()
@@ -199,13 +214,21 @@ func _draw() -> void:
 
 	var v_t_min: float = cam_min_world.x / cw + float(min_t_val)
 	var v_t_max: float = cam_max_world.x / cw + float(min_t_val)
-	var v_l_min: float = (cam_min_world.y / ch) if not view.flip else -(cam_max_world.y / ch)
-	var v_l_max: float = (cam_max_world.y / ch) if not view.flip else -(cam_min_world.y / ch)
-
 	var vx1: float = clampf(pad + (v_t_min - min_t_val) * cell_w, pad, size.x - pad)
 	var vx2: float = clampf(pad + (v_t_max - min_t_val) * cell_w, pad, size.x - pad)
-	var vy1: float = clampf(pad + (max_l_val - v_l_max) * cell_h, pad, size.y - pad)
-	var vy2: float = clampf(pad + (max_l_val - v_l_min) * cell_h, pad, size.y - pad)
+
+	var vy1: float
+	var vy2: float
+	if not view.flip:
+		var v_l_min: float = cam_min_world.y / ch
+		var v_l_max: float = cam_max_world.y / ch
+		vy1 = clampf(pad + (v_l_min - min_l_val) * cell_h, pad, size.y - pad)
+		vy2 = clampf(pad + (v_l_max - min_l_val) * cell_h, pad, size.y - pad)
+	else:
+		var v_l_min: float = -(cam_max_world.y / ch)
+		var v_l_max: float = -(cam_min_world.y / ch)
+		vy1 = clampf(pad + (max_l_val - v_l_max) * cell_h, pad, size.y - pad)
+		vy2 = clampf(pad + (max_l_val - v_l_min) * cell_h, pad, size.y - pad)
 
 	var cam_rect := Rect2(Vector2(vx1, vy1), Vector2(maxf(6.0, vx2 - vx1), maxf(6.0, vy2 - vy1)))
 	draw_rect(cam_rect, Color(0.3, 0.85, 1.0, 0.18))
